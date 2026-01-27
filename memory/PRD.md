@@ -80,6 +80,20 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 - **Handwriting Support**: Toggle for handwritten document processing
 - **Processing Metrics**: Confidence score, word count, page count, processing time
 
+### Phase 7: LLM Integration for AI Explanations (Complete - Jan 27, 2026)
+- **Live LLM**: Gemini 3 Flash via emergentintegrations library
+- **Arabic-First**: All explanations generated in Arabic with professional financial terminology
+- **Advisory Only**: Explanations are non-decision-making, human review required
+- **Audit Trail**: AIExplanationLog model stores all generations with:
+  - Confidence score (default 85%)
+  - Model used and provider
+  - Session ID and processing time
+  - SHA-256 audit hash for integrity
+  - Approval status (pending/approved/modified/rejected)
+  - Human review tracking
+- **Compliance**: No automatic scoring changes, all outputs clearly marked as advisory
+- **UI Integration**: "توليد شرح جديد" button on finding detail page
+
 ---
 
 ## 3. Architecture
