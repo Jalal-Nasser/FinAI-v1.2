@@ -115,8 +115,9 @@ class FinAIAPITester:
         if response and response.status_code == 200:
             try:
                 data = response.json()
-                if isinstance(data, list) and len(data) > 0:
-                    self.organization_id = data[0].get('id')
+                # Handle paginated response
+                if isinstance(data, dict) and 'results' in data and len(data['results']) > 0:
+                    self.organization_id = data['results'][0].get('id')
                     self.log_result("Organizations - List", True)
                     
                     # Test organization stats
@@ -128,6 +129,11 @@ class FinAIAPITester:
                             error_msg = f"Stats Status: {stats_response.status_code if stats_response else 'No response'}"
                             self.log_result("Organizations - Stats", False, error_msg=error_msg)
                     
+                    return True
+                elif isinstance(data, list) and len(data) > 0:
+                    # Handle direct array response
+                    self.organization_id = data[0].get('id')
+                    self.log_result("Organizations - List", True)
                     return True
                 else:
                     self.log_result("Organizations - List", False, 
