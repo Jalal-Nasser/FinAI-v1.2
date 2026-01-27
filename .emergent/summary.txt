@@ -1,158 +1,655 @@
 <analysis>**original_problem_statement:**
-The user requested the development of FinAI – AI-Powered Financial Audit Platform. The project is being developed in multiple phases. Initial phases involved a GAP analysis, implementing a complete Django backend for core accounting and compliance (ZATCA, VAT, Zakat), and seeding it with test data. The project then pivoted to a server-rendered Django Template frontend, which has been completed. Subsequent phases involve adding ZATCA Live Verification, Arabic PDF reporting, and Document Ingestion with OCR.
+The user requested the development of FinAI – AI-Powered Financial Audit Platform. The project has progressed through several phases, starting with a Django backend for accounting and compliance, a server-rendered Django Template frontend, ZATCA live verification (read-only), PDF reporting, document ingestion with OCR, and live LLM integration for AI-powered explanations.
+
+The most recent user request authorized three P2-level tasks:
+1.  **Dashboard Charts:** Add simple, server-rendered charts for executive visibility (e.g., compliance score trends).
+2.  **AI Explanation Review Workflow UI:** Build a UI for auditors to approve, modify, or reject AI-generated explanations, completing the human-in-the-loop audit cycle.
+3.  **Refactor :** Improve code maintainability by splitting the monolithic  file into smaller, feature-focused view files.
 
 **PRODUCT REQUIREMENTS:**
-- **Part 1-3 (Completed):** Analyze requirements, build a compliant backend, and create a test dataset.
-- **Part 4 (Completed):** Build a server-rendered, read-only, Arabic-first (RTL) auditor dashboard using Django Templates.
-- **Part 5 (Completed):** Implement a read-only ZATCA Live Verification service.
-- **Part 6 (In Progress):** Generate immutable, on-demand Arabic PDF audit reports.
-- **Part 7 (In Progress):** Implement document ingestion (PDF/JPG/PNG) with OCR for printed and handwritten text, storing extracted text as audit evidence.
-- **Future:** Integrate a live LLM for generating AI explanations.
+- **System Nature:** A read-only audit and compliance verification platform. It is NOT an ERP or operational accounting system.
+- **User Interface:** Arabic-first (RTL) design using server-rendered Django Templates.
+- **Core Features (Completed & Verified):**
+    - Auditor Dashboard with compliance stats.
+    - ZATCA Live Verification (simulated, verification-only).
+    - Arabic PDF Audit Report generation.
+    - Document Ingestion (PDF/Image) with Tesseract OCR.
+    - Live LLM Integration (Gemini 3 Flash via Emergent LLM Key) for AI-generated finding explanations.
+    - Multi-language UI toggle (AR/EN).
+    - Company settings with country-specific VAT validation logic (KSA).
+- **Current Scope (P2 - In Progress):** Dashboard Charts, AI Review Workflow UI, and  refactor.
 
 **User's preferred language**: English. The application's user interface and reports **MUST** be Arabic-first (RTL). The next agent should respond in English.
 
 **what currently exists?**
-A multi-feature Django application. The backend is feature-complete for core accounting and compliance modules. A server-rendered frontend built with Django Templates has been fully implemented and tested, providing a data-rich, Arabic-first (RTL) dashboard for auditors. A read-only ZATCA Live Verification API is also complete and functional. The implementation of Arabic PDF report generation and a document ingestion system with OCR has begun, with necessary libraries installed and initial code scaffolding (models, views, services, templates) in place. The environment is configured to run only the Django backend, with Nginx proxying all requests to it.
+A feature-rich Django application with a server-rendered frontend. All core features, including OCR document upload and live LLM integration, were completed and tested. The agent began work on the authorized P2 tasks, writing the necessary code for dashboard charts and an AI review workflow. It then started a major refactor of  into a new  package. This refactoring has destabilized the application, which now fails to start.
 
 **Last working item**:
-- **Last item agent was working:** The agent was implementing **Phase 8 – Document Ingestion with Handwriting OCR**. It had created the model, service, views, and templates, installed dependencies (, ), run migrations, and was attempting to verify the new document upload page.
-- **Status:** BLOCKED
-- **Agent Testing Done:** N
-- **Which testing method agent to use?** Manual testing by curl and then frontend testing agent. First, the underlying server error needs to be diagnosed using supervisor logs and . After the page loads, the full functionality (upload, OCR processing, evidence storage, and viewing results) should be tested with the frontend testing agent.
-- **User Testing Done:** N
+- **Last item agent was working:** Refactoring the monolithic  file into a modular package at . The agent had created the new directory structure and files, updated the URL configuration, but the application crashed upon restart.
+    - **Status:** BLOCKED
+    - **Agent Testing Done:** N
+    - **Which testing method agent to use?** Backend testing. The application is not starting. The agent needs to diagnose the root cause using supervisor logs.
+    - **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Document Upload Page Fails to Load (Priority: P0)**
-    - **Description:** Accessing the newly created document upload page at  results in a web server error. The screenshot tool was redirected to the login page, which suggests the route is protected, but the navigation or rendering is failing.
-    - **Attempted fixes:** The agent confirmed that the backend service and Nginx were running. It noted that the base application (login page) was accessible. The issue is specific to the new document ingestion feature's routes.
+- **Issue 1:  Application Fails to Start After View Refactoring (Priority: P0)**
+    - **Description:** After the agent refactored  into a  package, the Django application fails on startup with the error . This is a critical regression that has brought the entire application down. The error is likely a side-effect of the refactor causing an import-time issue or an environment instability.
+    - **Attempted fixes:** The agent identified the  from the logs and noted that Tesseract needed to be reinstalled.
     - **Next debug checklist:**
-        1.  Check the backend supervisor logs for specific Python tracebacks when the  URL is accessed: ==> /var/log/supervisor/backend.err.log <==
-WARNING:  WatchFiles detected changes in 'config/settings.py'. Reloading...
+        1.  Check the backend supervisor logs for the full Python traceback to pinpoint the exact import that triggers the error: ==> /var/log/supervisor/backend.err.log <==
+    raise exc_info[1]
+  File "/root/.venv/lib/python3.11/site-packages/django/core/handlers/base.py", line 253, in _get_response_async
+    response = await wrapped_callback(
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/asgiref/sync.py", line 504, in __call__
+    ret = await asyncio.shield(exec_coro)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/asgiref/sync.py", line 559, in thread_handler
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/core/web_views.py", line 946, in zatca_verification_view
+    ZATCALiveVerificationReport.objects.create(
+  File "/root/.venv/lib/python3.11/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/django/db/models/query.py", line 675, in create
+    obj = self.model(**kwargs)
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/django/db/models/base.py", line 567, in __init__
+    raise TypeError(
+TypeError: ZATCALiveVerificationReport() got unexpected keyword arguments: 'invoice_uuid', 'raw_response_json'
+WARNING:  WatchFiles detected changes in 'compliance/models.py'. Reloading...
 INFO:     Shutting down
-INFO:     Finished server process [71]
-INFO:     Started server process [168]
+INFO:     Finished server process [1293]
+INFO:     Started server process [1733]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'compliance/migrations/0004_add_zatca_verification_log.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [1733]
+WARNING:  WatchFiles detected changes in 'compliance/migrations/0004_add_zatca_verification_log.py'. Reloading...
+INFO:     Started server process [1739]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/web_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [1739]
+INFO:     Started server process [1791]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/models.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [1791]
+INFO:     Started server process [3443]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/vat_validation_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [3443]
+INFO:     Started server process [3459]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/migrations/0002_add_vat_fields.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [3459]
+WARNING:  WatchFiles detected changes in 'core/migrations/0002_add_vat_fields.py'. Reloading...
+INFO:     Started server process [3484]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/web_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [3484]
+INFO:     Started server process [3630]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/web_urls.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [3630]
+INFO:     Started server process [3665]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Finished server process [3665]
+INFO:     Stopping reloader process [690]
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [3816] using WatchFiles
+INFO:     Started server process [3818]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/web_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [3818]
+INFO:     Started server process [5099]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/web_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [5099]
+INFO:     Started server process [5652]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/web_urls.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [5652]
+INFO:     Started server process [6025]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/views/auth_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6025]
+INFO:     Started server process [6092]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/views/__init__.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6092]
+INFO:     Started server process [6131]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/views/dashboard_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6131]
+INFO:     Started server process [6147]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/views/compliance_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6147]
+INFO:     Started server process [6182]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/views/finding_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6182]
+INFO:     Started server process [6217]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/views/document_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6217]
+INFO:     Started server process [6252]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/views/transaction_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6252]
+INFO:     Started server process [6287]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/views/report_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6287]
+INFO:     Started server process [6322]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/views/settings_views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6322]
+INFO:     Started server process [6357]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/views/__init__.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6357]
+INFO:     Started server process [6392]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'core/web_urls.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6392]
+INFO:     Started server process [6455]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [42] using WatchFiles
+INFO:     Started server process [71]
 INFO:     Waiting for application startup.
 INFO:     ASGI 'lifespan' protocol appears unsupported.
 INFO:     Application startup complete.
 
-==> /var/log/supervisor/backend.out.log <==.
-        2.  Carefully review the newly added view  in . Ensure it correctly handles GET requests and that any context data is being created properly.
-        3.  Verify the URL pattern in  for  is correctly configured and points to the right view.
-        4.  Attempt to  the URL directly after logging in to isolate whether it's a backend view error or a frontend template rendering issue: .
-    - **Why fix this issue and what will be achieved with the fix?** This is a blocker for the entire Document Ingestion with OCR feature (Phase 8). Fixing it will allow for testing and completion of this critical functionality.
+==> /var/log/supervisor/backend.out.log <==
+INFO:     10.64.129.7:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.7:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.138.62:0 - "GET /findings/ HTTP/1.1" 200 OK
+INFO:     10.64.131.7:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.135.173:0 - "GET / HTTP/1.1" 302 Found
+INFO:     10.64.136.226:0 - "GET /login/?next=/ HTTP/1.1" 200 OK
+INFO:     10.64.131.206:0 - "GET /?x_request_source=preview HTTP/1.1" 302 Found
+INFO:     10.64.131.203:0 - "GET /login/?next=/%3Fx_request_source%3Dpreview HTTP/1.1" 200 OK
+INFO:     10.64.138.62:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.131.7:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.203:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "GET /findings/ HTTP/1.1" 200 OK
+INFO:     10.64.129.13:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.135.173:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.206:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.205:0 - "GET /findings/129302b7-355a-42b2-8e55-c9b854a5b66b/ HTTP/1.1" 404 Not Found
+INFO:     10.64.129.13:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.129.13:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.135.173:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.129.7:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.129.9:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "POST /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/generate-ai/ HTTP/1.1" 302 Found
+INFO:     10.64.129.9:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.131.206:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.34:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.7:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.131.206:55206 - "GET /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.129.7:55924 - "POST /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.34:56508 - "GET /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.34:56508 - "POST /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.7:39086 - "GET /api/findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.202:56348 - "GET /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.202:56348 - "POST /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.206:55206 - "GET /api/findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 404 Not Found
+INFO:     10.64.129.9:32984 - "GET /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.129.9:32984 - "POST /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.129.7:55924 - "GET /api/findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.204:33678 - "GET /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.129.13:50044 - "POST /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.135.173:59086 - "GET /api/findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.206:55206 - "GET /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.206:55206 - "POST /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.203:48104 - "GET /api/findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.34:56508 - "GET /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.7:39086 - "POST /api/login/ HTTP/1.1" 404 Not Found
+INFO:     10.64.138.62:50818 - "GET /api/findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 404 Not Found
+INFO:     10.64.131.34:0 - "HEAD /login/ HTTP/1.1" 200 OK
+INFO:     10.64.131.203:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.203:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.129.7:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.129.13:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.136.245:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.129.7:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.129.10:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.129.9:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.135.173:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.129.10:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.129.13:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.131.203:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.203:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.203:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.135.173:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.129.13:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.135.173:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.131.205:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.129.13:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.206:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.131.203:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.136.226:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.136.245:0 - "GET /findings/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.129.7:0 - "POST /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/generate-ai/ HTTP/1.1" 302 Found
+INFO:     10.64.136.245:0 - "GET /findings/e8c2dee9-2d4b-41d3-be03-914217cd0bdd/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "GET / HTTP/1.1" 302 Found
+INFO:     10.64.136.245:0 - "GET / HTTP/1.1" 302 Found
+INFO:     10.64.129.7:0 - "GET /login/?next=/ HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "GET /login/?next=/ HTTP/1.1" 200 OK
+INFO:     10.64.136.245:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.136.245:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.203:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.131.206:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.206:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "POST /toggle-language/ HTTP/1.1" 500 Internal Server Error
+INFO:     10.64.135.173:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.129.9:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.203:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.204:0 - "POST /toggle-language/ HTTP/1.1" 302 Found
+INFO:     10.64.129.7:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.129.13:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.136.245:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.138.62:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.7:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.131.204:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.131.205:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.129.7:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.129.9:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "POST /compliance/zatca-verify/ HTTP/1.1" 500 Internal Server Error
+INFO:     10.64.136.245:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.203:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.205:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "POST /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.131.7:0 - "GET / HTTP/1.1" 302 Found
+INFO:     10.64.129.7:0 - "GET /login/?next=/ HTTP/1.1" 200 OK
+INFO:     10.64.131.205:0 - "GET / HTTP/1.1" 302 Found
+INFO:     10.64.131.205:0 - "GET /login/?next=/ HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "POST /login/?next=/ HTTP/1.1" 302 Found
+INFO:     10.64.131.202:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.136.245:0 - "GET / HTTP/1.1" 302 Found
+INFO:     10.64.129.9:0 - "GET /login/?next=/ HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "POST /login/?next=/ HTTP/1.1" 302 Found
+INFO:     10.64.131.206:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.203:0 - "POST /toggle-language/ HTTP/1.1" 302 Found
+INFO:     10.64.131.205:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.129.13:0 - "GET / HTTP/1.1" 302 Found
+INFO:     10.64.135.173:0 - "GET /login/?next=/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "POST /login/?next=/ HTTP/1.1" 302 Found
+INFO:     10.64.131.34:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.135.173:0 - "GET /compliance/ HTTP/1.1" 200 OK
+INFO:     10.64.129.9:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 302 Found
+INFO:     10.64.136.226:0 - "GET /login/?next=/compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.131.34:0 - "POST /login/?next=/compliance/zatca-verify/ HTTP/1.1" 302 Found
+INFO:     10.64.138.62:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.129.13:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 302 Found
+INFO:     10.64.129.9:0 - "GET /login/?next=/compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "POST /login/?next=/compliance/zatca-verify/ HTTP/1.1" 302 Found
+INFO:     10.64.129.7:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.205:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.131.204:0 - "POST /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.136.245:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 302 Found
+INFO:     10.64.129.13:0 - "GET /login/?next=/compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.138.62:0 - "POST /login/?next=/compliance/zatca-verify/ HTTP/1.1" 302 Found
+INFO:     10.64.138.62:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.138.62:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.135.173:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 302 Found
+INFO:     10.64.135.173:0 - "GET /login/?next=/compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.131.204:0 - "POST /login/?next=/compliance/zatca-verify/ HTTP/1.1" 302 Found
+INFO:     10.64.131.204:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.203:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.131.205:0 - "POST /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.136.245:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 302 Found
+INFO:     10.64.131.203:0 - "GET /login/?next=/compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.131.206:0 - "POST /login/?next=/compliance/zatca-verify/ HTTP/1.1" 302 Found
+INFO:     10.64.131.206:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.131.206:0 - "POST /toggle-language/ HTTP/1.1" 302 Found
+INFO:     10.64.131.203:0 - "GET /compliance/zatca-verify/ HTTP/1.1" 200 OK
+INFO:     10.64.129.9:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.205:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.206:0 - "GET /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.204:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.206:0 - "GET /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.129.7:0 - "POST /settings/organization/ HTTP/1.1" 302 Found
+INFO:     10.64.131.206:0 - "GET /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.131.204:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.131.204:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.129.9:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "GET /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.129.7:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.131.205:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.206:0 - "GET /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.131.206:0 - "POST /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.135.173:0 - "GET /login/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "POST /login/ HTTP/1.1" 302 Found
+INFO:     10.64.135.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "GET /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.136.226:0 - "GET /settings/organization/ HTTP/1.1" 302 Found
+INFO:     10.64.129.10:0 - "GET /login/?next=/settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.138.62:0 - "POST /login/?next=/settings/organization/ HTTP/1.1" 302 Found
+INFO:     10.64.131.34:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.131.34:0 - "GET /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.131.7:0 - "POST /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.138.62:0 - "POST /settings/organization/ HTTP/1.1" 302 Found
+INFO:     10.64.131.34:0 - "GET /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.131.202:0 - "GET /settings/organization/ HTTP/1.1" 302 Found
+INFO:     10.64.131.203:0 - "GET /login/?next=/settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.129.10:0 - "POST /login/?next=/settings/organization/ HTTP/1.1" 302 Found
+INFO:     10.64.129.10:0 - "GET / HTTP/1.1" 200 OK
+INFO:     10.64.135.173:0 - "GET /settings/organization/ HTTP/1.1" 200 OK
+INFO:     10.64.136.245:0 - "POST /settings/organization/ HTTP/1.1" 302 Found
+INFO:     10.64.136.226:0 - "GET /settings/organization/ HTTP/1.1" 200 OK.
+        2.  Verify if Tesseract is still installed and in the system's PATH: .
+        3.  If it is missing, reinstall it and its Arabic language pack: Hit:1 http://deb.debian.org/debian bookworm InRelease
+Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+Get:4 https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 InRelease [3005 B]
+Get:5 https://deb.nodesource.com/node_20.x nodistro InRelease [12.1 kB]
+Get:6 http://deb.debian.org/debian-security bookworm-security/main arm64 Packages [288 kB]
+Get:7 https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0/multiverse arm64 Packages [100 kB]
+Get:8 https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0/multiverse amd64 Packages [102 kB]
+Fetched 609 kB in 1s (720 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libarchive13 libgif7 liblept5 libopenjp2-7 libpangocairo-1.0-0
+  libpangoft2-1.0-0 libtesseract5 libwebpmux3 tesseract-ocr-eng
+  tesseract-ocr-osd
+Suggested packages:
+  lrzip
+The following NEW packages will be installed:
+  libarchive13 libgif7 liblept5 libopenjp2-7 libpangocairo-1.0-0
+  libpangoft2-1.0-0 libtesseract5 libwebpmux3 tesseract-ocr tesseract-ocr-ara
+  tesseract-ocr-eng tesseract-ocr-osd
+0 upgraded, 12 newly installed, 0 to remove and 10 not upgraded.
+Need to get 8416 kB of archives.
+After this operation, 27.2 MB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian bookworm/main arm64 libarchive13 arm64 3.6.2-1+deb12u3 [317 kB]
+Get:2 http://deb.debian.org/debian bookworm/main arm64 libgif7 arm64 5.2.1-2.5 [46.7 kB]
+Get:3 http://deb.debian.org/debian bookworm/main arm64 libopenjp2-7 arm64 2.5.0-2+deb12u2 [176 kB]
+Get:4 http://deb.debian.org/debian bookworm/main arm64 libwebpmux3 arm64 1.2.4-0.2+deb12u1 [109 kB]
+Get:5 http://deb.debian.org/debian bookworm/main arm64 liblept5 arm64 1.82.0-3+b3 [973 kB]
+Get:6 http://deb.debian.org/debian bookworm/main arm64 libpangoft2-1.0-0 arm64 1.50.12+ds-1 [44.5 kB]
+Get:7 http://deb.debian.org/debian bookworm/main arm64 libpangocairo-1.0-0 arm64 1.50.12+ds-1 [32.0 kB]
+Get:8 http://deb.debian.org/debian bookworm/main arm64 libtesseract5 arm64 5.3.0-2 [1123 kB]
+Get:9 http://deb.debian.org/debian bookworm/main arm64 tesseract-ocr-eng all 1:4.1.0-2 [1594 kB]
+Get:10 http://deb.debian.org/debian bookworm/main arm64 tesseract-ocr-osd all 1:4.1.0-2 [2992 kB]
+Get:11 http://deb.debian.org/debian bookworm/main arm64 tesseract-ocr arm64 5.3.0-2 [363 kB]
+Get:12 http://deb.debian.org/debian bookworm/main arm64 tesseract-ocr-ara all 1:4.1.0-2 [647 kB]
+Fetched 8416 kB in 0s (46.1 MB/s)
+Selecting previously unselected package libarchive13:arm64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 38194 files and directories currently installed.)
+Preparing to unpack .../00-libarchive13_3.6.2-1+deb12u3_arm64.deb ...
+Unpacking libarchive13:arm64 (3.6.2-1+deb12u3) ...
+Selecting previously unselected package libgif7:arm64.
+Preparing to unpack .../01-libgif7_5.2.1-2.5_arm64.deb ...
+Unpacking libgif7:arm64 (5.2.1-2.5) ...
+Selecting previously unselected package libopenjp2-7:arm64.
+Preparing to unpack .../02-libopenjp2-7_2.5.0-2+deb12u2_arm64.deb ...
+Unpacking libopenjp2-7:arm64 (2.5.0-2+deb12u2) ...
+Selecting previously unselected package libwebpmux3:arm64.
+Preparing to unpack .../03-libwebpmux3_1.2.4-0.2+deb12u1_arm64.deb ...
+Unpacking libwebpmux3:arm64 (1.2.4-0.2+deb12u1) ...
+Selecting previously unselected package liblept5:arm64.
+Preparing to unpack .../04-liblept5_1.82.0-3+b3_arm64.deb ...
+Unpacking liblept5:arm64 (1.82.0-3+b3) ...
+Selecting previously unselected package libpangoft2-1.0-0:arm64.
+Preparing to unpack .../05-libpangoft2-1.0-0_1.50.12+ds-1_arm64.deb ...
+Unpacking libpangoft2-1.0-0:arm64 (1.50.12+ds-1) ...
+Selecting previously unselected package libpangocairo-1.0-0:arm64.
+Preparing to unpack .../06-libpangocairo-1.0-0_1.50.12+ds-1_arm64.deb ...
+Unpacking libpangocairo-1.0-0:arm64 (1.50.12+ds-1) ...
+Selecting previously unselected package libtesseract5:arm64.
+Preparing to unpack .../07-libtesseract5_5.3.0-2_arm64.deb ...
+Unpacking libtesseract5:arm64 (5.3.0-2) ...
+Selecting previously unselected package tesseract-ocr-eng.
+Preparing to unpack .../08-tesseract-ocr-eng_1%3a4.1.0-2_all.deb ...
+Unpacking tesseract-ocr-eng (1:4.1.0-2) ...
+Selecting previously unselected package tesseract-ocr-osd.
+Preparing to unpack .../09-tesseract-ocr-osd_1%3a4.1.0-2_all.deb ...
+Unpacking tesseract-ocr-osd (1:4.1.0-2) ...
+Selecting previously unselected package tesseract-ocr.
+Preparing to unpack .../10-tesseract-ocr_5.3.0-2_arm64.deb ...
+Unpacking tesseract-ocr (5.3.0-2) ...
+Selecting previously unselected package tesseract-ocr-ara.
+Preparing to unpack .../11-tesseract-ocr-ara_1%3a4.1.0-2_all.deb ...
+Unpacking tesseract-ocr-ara (1:4.1.0-2) ...
+Setting up libarchive13:arm64 (3.6.2-1+deb12u3) ...
+Setting up tesseract-ocr-eng (1:4.1.0-2) ...
+Setting up tesseract-ocr-ara (1:4.1.0-2) ...
+Setting up libgif7:arm64 (5.2.1-2.5) ...
+Setting up libopenjp2-7:arm64 (2.5.0-2+deb12u2) ...
+Setting up tesseract-ocr-osd (1:4.1.0-2) ...
+Setting up libpangoft2-1.0-0:arm64 (1.50.12+ds-1) ...
+Setting up libwebpmux3:arm64 (1.2.4-0.2+deb12u1) ...
+Setting up libpangocairo-1.0-0:arm64 (1.50.12+ds-1) ...
+Setting up liblept5:arm64 (1.82.0-3+b3) ...
+Setting up libtesseract5:arm64 (5.3.0-2) ...
+Setting up tesseract-ocr (5.3.0-2) ...
+Processing triggers for libc-bin (2.36-9+deb12u13) ....
+        4.  Review the new view files in  and the main  to check for circular dependencies or import orders that might cause the  to initialize incorrectly.
+        5.  Restart the backend service and re-check logs: backend: stopped
+backend: started.
+    - **Why fix this issue and what will be achieved with the fix?** This is a critical blocker. The application is unusable. Fixing this will restore functionality and allow the agent to complete and verify the P2 tasks.
     - **Status:** IN PROGRESS
-    - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** Both
-    - **Blocked on other issue:** None
+    - **Is recurring issue?** Y
+    - **Should Test frontend/backend/both after fix?** Both. A full regression test using the testing agent is required after this major refactor is stabilized.
+    - **Blocked on other issue:** None. This is the primary blocker.
 
 **In progress Task List**:
-- **Task 1: Complete and Verify Phase 5 - Arabic PDF Audit Reports (Priority: P1)**
-    - **Where to resume:** The agent confirmed a download was initiated by the browser but did not verify the content of the downloaded PDF file. The  and  tools were unavailable for inspection.
-    - **What will be achieved with this?** A fully functional and verified feature that allows users to download a properly formatted, multi-page Arabic PDF audit report.
-    - **Next steps:**
-        1. After logging in, navigate to the  URL.
-        2. Download the file using  and save it (e.g., ).
-        3. Verify the file is a valid PDF. Since  is not present, use a Python script to check for the PDF magic number: 
-    - **Status:** TESTING PENDING
-    - **Should Test frontend/backend/both after fix?** Frontend (download flow) and Backend (file content).
-    - **Blocked on something:** No
+- **Task 1:  Complete and Verify P2 Tasks (Priority: P1)**
+    - **Description:** This task covers the three user-authorized P2 items. The code has been written, but none of it has been tested due to the startup crash.
+    - **Where to resume:** First, resolve the P0 startup issue. Once the application is running, proceed to test the following features:
+        1.  **Dashboard Charts:** Navigate to the dashboard and verify that two new charts (Compliance Score Trend, Compliance Area Summary) are rendering correctly with Arabic labels.
+        2.  **AI Explanation Review Workflow:** Navigate to an audit finding detail page. Verify the new UI for approving, modifying, or rejecting an AI explanation. Test each action and confirm the changes are logged and reflected correctly.
+        3.  **View Refactor:** After confirming the above features work, ensure all existing application URLs and functionalities are still operational. Perform a full regression test. Finally, delete the old  file.
+    - **What will be achieved with this?** A more maintainable codebase, enhanced dashboard visibility, and a complete human-in-the-loop audit workflow for AI explanations.
+    - **Status:** IN PROGRESS
+    - **Should Test frontend/backend/both after fix?** Both
+    - **Blocked on something:** Blocked on **Issue 1: Application Fails to Start After View Refactoring**.
 
 **Upcoming and Future Tasks**
-- **Upcoming Tasks:**
-  - **Task 1: Implement LLM Integration for AI Explanations (P1):**
-    - **File/Method:** Update the services in  and related logic in .
-    - **Description:** The  model contains a field , which is currently populated with static, seeded data. This task is to replace the static data by integrating a live LLM API (using the provided ) to dynamically generate these Arabic explanations based on the finding's details.
-- **Future Tasks:**
-  - **Task 1: Database Migration to PostgreSQL (P2):** Migrate the database from SQLite to PostgreSQL to support enterprise-level scale and performance.
+- **Future Tasks (Deferred by User):**
+    - **P2: Database Migration to PostgreSQL:** Currently on hold.
+    - **P2: Dashboard chart expansion:** Any charts beyond the initial two are deferred.
+    - **P2: AI Explanation review workflow UI:** Work on this is in-progress.
 
 **Completed work in this session**
-- **Frontend Implementation (Phase 3 - Complete):** Successfully implemented and tested a full-featured, server-rendered auditor dashboard using Django Templates with an Arabic-first, RTL design. All 28 frontend tests passed.
-- **ZATCA Live Verification (Phase 4 - Complete):** Implemented and tested a read-only ZATCA Live Verification service with API endpoints for invoice validation, VAT number checks, and storing results as audit evidence.
-- **Arabic PDF Reports (Phase 5 - Started):** Installed dependencies (, ), created the PDF generation service (), and added the download endpoint and UI button.
-- **Document Ingestion with OCR (Phase 8 - Started):** Installed Tesseract OCR with Arabic support, created the  model, and built the initial views, templates, and services for the feature.
+- **P0 Blocker Fixed:** Resolved initial server error on .
+- **P1 Task - PDF Reports Verified:** Confirmed Arabic PDF download is functional.
+- **P1 Task - OCR Flow Completed:** Implemented and tested the end-to-end document upload and OCR processing flow.
+- **P1 Task - LLM Integration:** Successfully integrated Gemini 3 Flash to provide live, dynamic AI explanations for audit findings, including an audit trail.
+- **Multi-language Toggle:** Implemented a UI toggle for Arabic/English languages.
+- **ZATCA API Integration (Simulated):** Built a verification-only page for ZATCA checks, adhering to the project's read-only scope.
+- **VAT Handling Logic:** Added server-side VAT number validation for organizations based in Saudi Arabia.
 
 **Earlier issues found/mentioned but not fixed**
 - None.
 
 **Known issue recurrence from previous fork**
-- None.
+- The Tesseract OCR installation has proven to be unstable in this environment. It was installed and working earlier in the session but failed after a code refactoring and restart. This is a recurring issue within this session that the next agent must be aware of.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Backend:** Django, Django REST Framework (DRF)
-- **Frontend:** Server-Side Rendered (SSR) using Django Templates
+- **Backend:** Django
+- **Frontend:** Server-Side Rendered (SSR) using Django Templates, Chart.js (via CDN)
 - **Database:** SQLite
 - **PDF Generation:** ReportLab, , 
-- **OCR:** Tesseract, , 
-- **Architecture:** Monolithic application with distinct Django apps for features.
+- **OCR:** Tesseract,  (Currently causing a startup error)
+- **LLM Integration:**  library for Gemini 3 Flash.
+- **Internationalization (i18n):** Simple language toggle via Django sessions and context processors.
+- **Code Structure:** View logic is being refactored from a single file into a modular  package.
 
 **key DB schema**
-- : {report_id, organization, invoice_uuid, compliance_score, passed_checks, failed_checks, created_at}
-- : {evidence_id, organization, original_document, extracted_text, confidence_score, created_at}
+- : Added , , , , .
+- : 
+- : 
+- : 
 
 **changes in tech stack**
-- **PDF Generation:** Added , , .
-- **OCR:** Added , , .
+- **LLM:**  library was added and used for Gemini API calls.
+- **Frontend Charting:**  was introduced via a CDN for dashboard visualizations.
 
 **All files of reference**
-- : New service for handling OCR processing.
-- : Heavily modified to include views for all frontend pages, including the new (and failing) .
-- : Updated with all routes for the Django template frontend.
-- : Modified to add  and  for the preview environment.
-- : New Nginx config to route all traffic to the Django backend, bypassing the (now stopped) frontend service.
-- : New documentation file outlining the scope of the ZATCA integration.
-- : Test report from the successful frontend verification.
+- Refactored view files in .
+- : Updated to import from .
+- : The file being refactored, which is the likely source of instability.
+- : Updated with Chart.js implementation.
+- : Updated with the AI Explanation review UI.
+- : The last successful test report before the application crashed.
 
 **Areas that need refactoring**:
--  has grown significantly and now contains views for authentication, dashboards, compliance, reports, and document handling. It should be split into smaller, more focused files (e.g., , ) within the relevant Django apps to improve maintainability.
+- The refactoring of  is the immediate task. It is incomplete and has broken the application. It must be stabilized and completed.
 
 **key api endpoints**
-- 
-- 
-- **New Web URLs:**
-  - , , , , , ,  (All implemented)
-  -  (Implemented, needs verification)
-  - , ,  (Implemented, but upload page is broken)
+- : New page for company VAT settings.
+- : New page for ZATCA checks.
+- : New endpoint for submitting an AI explanation review.
+- : New endpoint for language switching.
 
 **Critical Info for New Agent**
-- **ENVIRONMENT:** The frontend service (yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.) is **stopped**. Nginx is configured to proxy ALL traffic (on port 3000) directly to the Django backend (on port 8001). Do not attempt to start the frontend service. All rendering is handled by Django Templates.
-- **IMMEDIATE BLOCKER:** The top priority is to debug the server error on the  page. This is preventing progress on the current authorized task. Check backend logs first.
-- **IN-PROGRESS TASKS:** Two features are mid-flight: Document Ingestion (blocked) and PDF Reports (pending final verification). Address the blocker first, then verify the PDF download.
+- **IMMEDIATE BLOCKER:** The application is DOWN. A refactoring of  caused a  related to Tesseract OCR at startup. You cannot proceed with any other task until this is fixed.
+- **P2 TASKS IN-FLIGHT:** Code for all three P2 tasks (Dashboard Charts, AI Review UI, View Refactor) has been implemented but is untested. Your first job after fixing the crash is to systematically test and verify these new features.
+- **TESSERACT INSTABILITY:** The Tesseract installation has proven to be volatile. It was working before the refactor. Be prepared to reinstall it (Reading package lists...
+Building dependency tree...
+Reading state information...
+tesseract-ocr is already the newest version (5.3.0-2).
+tesseract-ocr-ara is already the newest version (1:4.1.0-2).
+0 upgraded, 0 newly installed, 0 to remove and 10 not upgraded.) as a first step in your debugging process.
+- **REFACTOR STATE:** The agent created new view files under  and updated . The original  still exists and is the likely source of the import-time conflict.
 
 **documents and test reports created in this job**
 - 
 - 
--  (updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-- The last several user messages were authorizations to proceed with new phases of the project. The sequence was:
-  1. Approve ZATCA Live Verification (Completed).
-  2. Authorize Arabic PDF Audit Reports (In Progress).
-  3. Authorize Document Ingestion with Handwriting OCR (In Progress, Blocked).
-- The current pending task is to complete the authorized OCR work.
+- The user authorized three specific P2 tasks: Dashboard Charts, AI Explanation Review Workflow UI, and refactoring .
+- The user set strict rules to preserve the system's read-only nature and existing functionality.
+- There are no other pending user requests. The current authorization is to complete the in-progress P2 tasks.
 
 **Project Health Check:**
-- **Broken:** The Document Ingestion feature is non-functional due to a server error on the  page.
-- **Mocked:** The AI-powered explanation generation for audit findings () is a placeholder using static data. It does not yet make live calls to an LLM.
+- **Broken:** The entire application is non-functional due to a startup  triggered by the code refactoring.
+- **Mocked:** ZATCA API integration remains a simulation, as per user instructions. Live ZATCA integration is **not authorized**.
 
 **3rd Party Integrations**
-- **ReportLab / python-bidi / arabic-reshaper:** (v4.4.9 / v0.6.7 / v3.0.0) Used for generating Arabic PDFs.
-- **Tesseract / pytesseract / pdf2image:** (v5.3.0 / v0.3.13 / v1.17.0) Used for OCR on uploaded documents.
-- **Emergent LLM Key:** Available, but the LLM integration logic is not yet implemented (an upcoming task).
+- **Emergent LLM Key:** Used with  for the  model.
+- **Tesseract / pytesseract:** Used for OCR. **(Currently causing a system crash)**.
+- **ReportLab / python-bidi / arabic-reshaper:** Used for generating Arabic PDFs.
+- **Chart.js:** Used via CDN for dashboard charts.
 
 **Testing status**
-- **Frontend:** The main dashboard was tested successfully ().
-- **Backend:** ZATCA Live API was tested with .
-- **Test files created:** 
-- **Known regressions:** None.
+- **Testing agent used after significant changes:** YES. The last successful test run is documented in .
+- **Troubleshoot agent used after agent stuck in loop:** NO
+- **Test files created:** , , , .
+- **Known regressions:** Tesseract OCR functionality has regressed, preventing the application from starting.
 
 **Credentials to test flow:**
 - **Email:** 
 - **Password:** 
 
 **What agent forgot to execute**
-- The agent failed to fully test and verify the PDF download functionality; it was interrupted before confirming the file content.
-- The agent was blocked by a server error before it could test any part of the document ingestion and OCR flow.</analysis>
+- The agent failed to complete the refactoring of  in a stable, incremental way. The big bang approach of creating all new files and changing the URL configuration at once led to a critical application failure without a clear, isolated cause.</analysis>
