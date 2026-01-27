@@ -746,7 +746,7 @@ def document_upload_view(request):
                 extracted_vat_number=structured.get('vat_number'),
                 extracted_total=structured.get('total_amount'),
                 extracted_tax=structured.get('tax_amount'),
-                structured_data_json=structured,
+                structured_data_json=structured_json,
                 evidence_hash=ocr_result.get('evidence_hash', ''),
                 extracted_by=user,
             )
