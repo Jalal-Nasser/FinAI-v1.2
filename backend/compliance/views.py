@@ -1,6 +1,10 @@
 """
 Compliance Views - عرض الامتثال
 Read-only API endpoints for ZATCA, VAT, Zakat, and Audit findings
+
+SCOPE: READ-ONLY VERIFICATION AND AUDIT
+This module provides READ-ONLY access to compliance data.
+It does NOT generate, submit, or modify invoices.
 """
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
@@ -8,11 +12,13 @@ from rest_framework.response import Response
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
+from dataclasses import asdict
+import logging
 
 from .models import (
     RegulatoryReference, ZATCAInvoice, ZATCAValidationResult,
     VATReconciliation, VATDiscrepancy, ZakatCalculation,
-    ZakatDiscrepancy, AuditFinding
+    ZakatDiscrepancy, AuditFinding, ZATCALiveVerificationReport
 )
 from .serializers import (
     RegulatoryReferenceSerializer, ZATCAInvoiceSerializer,
@@ -24,6 +30,9 @@ from .serializers import (
     ArabicAuditReportSerializer
 )
 from .services import zatca_service, vat_service, zakat_service, arabic_report_service
+from .zatca_live_verification import zatca_live_verification_service, ZATCAVerificationResult
+
+logger = logging.getLogger(__name__)
 
 
 class RegulatoryReferenceViewSet(viewsets.ReadOnlyModelViewSet):
