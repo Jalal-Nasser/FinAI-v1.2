@@ -249,13 +249,15 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 - **AI Explanations**: All LLM-generated explanations are marked as ADVISORY ONLY and require human review before any action. Approval workflow is available.
 - **No Automatic Decisions**: AI output does not change risk scores, findings status, or any accounting data automatically.
 
-### ZATCA Scope Limitation
-- ✓ Validates existing invoice data
+### ZATCA API Scope Limitation
+- ✓ Verifies VAT number format
+- ✓ Validates invoice XML structure
 - ✓ Stores verification results as audit evidence
-- ✗ Does NOT generate invoices
-- ✗ Does NOT submit to ZATCA
-- ✗ Does NOT sign invoices
+- ✓ Provides Arabic error messages with regulatory references
+- ✗ Does NOT submit invoices to ZATCA (SIMULATED responses)
+- ✗ Does NOT clear or sign invoices
 - ✗ Does NOT act on behalf of taxpayers
+- **Note**: Currently using simulated ZATCA responses. To connect to live ZATCA sandbox, update `zatca_api_service.py` with actual API credentials.
 
 ### OCR Scope Limitation
 - ✓ Extracts text from documents as audit evidence
