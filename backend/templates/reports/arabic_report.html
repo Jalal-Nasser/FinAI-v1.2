@@ -11,6 +11,9 @@
             <p class="text-sm text-slate-500">{{ organization.name }}</p>
         </div>
         <div class="flex items-center gap-2">
+            <a href="{% url 'download_pdf_report' %}" class="px-4 py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600" data-testid="download-pdf-btn">
+                تحميل PDF
+            </a>
             <button onclick="window.print()" class="px-4 py-2 bg-slate-800 text-white text-sm rounded hover:bg-slate-700" data-testid="print-report-btn">
                 طباعة التقرير
             </button>
