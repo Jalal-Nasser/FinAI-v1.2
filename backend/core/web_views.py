@@ -339,6 +339,85 @@ def generate_ai_explanation_view(request, finding_id):
     return redirect('audit_finding_detail', finding_id=finding_id)
 
 
+@login_required
+@require_POST
+def review_ai_explanation_view(request, log_id):
+    """
+    مراجعة واعتماد/رفض/تعديل الشرح الذكي
+    Review and Approve/Reject/Modify AI Explanation
+    
+    COMPLIANCE:
+    - All actions are logged
+    - No automatic approval
+    - No auto-override of audit findings
+    - Preserves AIExplanationLog integrity
+    """
+    from compliance.models import AIExplanationLog
+    
+    user = request.user
+    organization = user.organization
+    
+    # Get the AI explanation log
+    ai_log = get_object_or_404(AIExplanationLog, id=log_id, organization=organization)
+    
+    # Only pending logs can be reviewed
+    if ai_log.approval_status != 'pending':
+        messages.error(request, 'هذا الشرح تمت مراجعته مسبقاً')
+        return redirect('audit_finding_detail', finding_id=ai_log.finding.id)
+    
+    action = request.POST.get('action', '')
+    
+    if action == 'approve':
+        ai_log.approval_status = 'approved'
+        ai_log.human_reviewed = True
+        ai_log.reviewed_by = user
+        ai_log.reviewed_at = timezone.now()
+        ai_log.save()
+        
+        messages.success(request, 'تم اعتماد الشرح الذكي بنجاح')
+        logger.info(f"AI explanation approved: {ai_log.id} by {user.email}")
+        
+    elif action == 'reject':
+        ai_log.approval_status = 'rejected'
+        ai_log.human_reviewed = True
+        ai_log.reviewed_by = user
+        ai_log.reviewed_at = timezone.now()
+        ai_log.review_notes = request.POST.get('review_notes', 'رفض بدون ملاحظات')
+        ai_log.save()
+        
+        messages.warning(request, 'تم رفض الشرح الذكي')
+        logger.info(f"AI explanation rejected: {ai_log.id} by {user.email}")
+        
+    elif action == 'modify':
+        modified_text = request.POST.get('modified_text', '').strip()
+        review_notes = request.POST.get('review_notes', '').strip()
+        
+        if not modified_text:
+            messages.error(request, 'يرجى إدخال النص المعدّل')
+            return redirect('audit_finding_detail', finding_id=ai_log.finding.id)
+        
+        ai_log.approval_status = 'modified'
+        ai_log.human_reviewed = True
+        ai_log.reviewed_by = user
+        ai_log.reviewed_at = timezone.now()
+        ai_log.review_notes = review_notes or 'تم التعديل بواسطة المدقق'
+        ai_log.explanation_ar = modified_text
+        ai_log.save()
+        
+        # Update the finding with modified explanation
+        ai_log.finding.ai_explanation_ar = modified_text
+        ai_log.finding.save()
+        
+        messages.success(request, 'تم تعديل واعتماد الشرح الذكي')
+        logger.info(f"AI explanation modified: {ai_log.id} by {user.email}")
+    
+    else:
+        messages.error(request, 'إجراء غير صالح')
+    
+    return redirect('audit_finding_detail', finding_id=ai_log.finding.id)
+
+
+@login_required
 def transactions_view(request):
     user = request.user
     organization = user.organization
