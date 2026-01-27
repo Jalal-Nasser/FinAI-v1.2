@@ -903,3 +903,70 @@ class AIExplanationLog(models.Model):
     def __str__(self):
         return f"AI Explanation: {self.finding.finding_number} ({self.approval_status})"
 
+
+
+class ZATCAVerificationLog(models.Model):
+    """
+    سجل التحقق من ZATCA API - ZATCA API Verification Log
+    
+    Standalone audit log for ZATCA verification requests.
+    Does NOT require an existing invoice record.
+    
+    SCOPE: VERIFICATION ONLY
+    - No invoice submission
+    - No clearance or signing
+    - Maintains auditor independence
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE,
+        related_name='zatca_verification_logs'
+    )
+    
+    # Verification details
+    verification_type = models.CharField(max_length=50)  # vat_number, invoice_structure
+    input_identifier = models.CharField(max_length=255)  # VAT number or Invoice UUID
+    
+    # Results
+    is_valid = models.BooleanField(default=False)
+    compliance_score = models.IntegerField(default=0)
+    passed_checks = models.IntegerField(default=0)
+    failed_checks = models.IntegerField(default=0)
+    
+    # Messages
+    message_ar = models.TextField(null=True, blank=True)
+    message_en = models.TextField(null=True, blank=True)
+    error_code = models.CharField(max_length=50, null=True, blank=True)
+    
+    # Full response
+    response_json = models.JSONField()
+    
+    # Processing
+    processing_time_ms = models.IntegerField(default=0)
+    audit_hash = models.CharField(max_length=64)
+    
+    # Audit trail
+    verified_by = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='zatca_api_verifications'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Scope declaration
+    scope_declaration = models.TextField(
+        default='VERIFICATION ONLY - No submission, clearance, or signing',
+        help_text='Documents the read-only nature of this verification'
+    )
+    
+    class Meta:
+        db_table = 'zatca_verification_logs'
+        indexes = [
+            models.Index(fields=['organization']),
+            models.Index(fields=['verification_type']),
+            models.Index(fields=['created_at']),
+        ]
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"ZATCA Verification: {self.verification_type} ({self.input_identifier[:20]})"
+
