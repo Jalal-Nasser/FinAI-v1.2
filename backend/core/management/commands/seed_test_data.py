@@ -100,7 +100,6 @@ class Command(BaseCommand):
         org_data = [
             {
                 'name': 'Al-Faisal Trading Company',
-                'name_ar': 'شركة الفيصل للتجارة',
                 'country': 'SA',
                 'tax_id': '3100123456',
                 'vat_rate': 15,
@@ -110,7 +109,6 @@ class Command(BaseCommand):
             },
             {
                 'name': 'Emirates Tech Solutions',
-                'name_ar': 'حلول الإمارات التقنية',
                 'country': 'AE',
                 'tax_id': '100234567890123',
                 'vat_rate': 5,
@@ -120,7 +118,6 @@ class Command(BaseCommand):
             },
             {
                 'name': 'Kuwait Industrial Group',
-                'name_ar': 'مجموعة الكويت الصناعية',
                 'country': 'KW',
                 'tax_id': 'KW123456789',
                 'vat_rate': 0,  # Kuwait has no VAT yet
