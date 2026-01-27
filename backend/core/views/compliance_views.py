@@ -43,7 +43,7 @@ def compliance_overview_view(request):
         'total': vat_reconciliations.count(),
         'total_variance': vat_reconciliations.aggregate(total=Sum('total_variance'))['total'] or Decimal('0'),
         'total_collected': vat_reconciliations.aggregate(total=Sum('total_output_vat'))['total'] or Decimal('0'),
-        'total_reported': vat_reconciliations.aggregate(total=Sum('total_reported'))['total'] or Decimal('0'),
+        'total_reported': vat_reconciliations.aggregate(total=Sum('net_vat_due'))['total'] or Decimal('0'),
     }
     vat_score = vat_reconciliations.aggregate(avg=Sum('compliance_score'))['avg']
     vat_score = int(vat_score / max(vat_reconciliations.count(), 1)) if vat_score else 100
