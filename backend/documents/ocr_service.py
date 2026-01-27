@@ -313,6 +313,10 @@ class DocumentOCRService:
         
         NOTE: This is best-effort extraction for audit purposes.
         Extracted values should NOT be treated as accounting truth.
+        
+        Returns:
+            Dict with extracted values. Amounts are stored as Decimal for DB fields
+            and as float for JSON serialization.
         """
         structured = {
             'invoice_number': None,
@@ -346,7 +350,7 @@ class DocumentOCRService:
         if vat_match:
             structured['vat_number'] = vat_match.group(0)
         
-        # Try to extract amounts
+        # Try to extract amounts (store as Decimal for precision)
         amount_patterns = [
             r'(?:الإجمالي|المجموع|Total)[:\s]*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)',
             r'(?:المبلغ|Amount)[:\s]*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)',
@@ -383,6 +387,16 @@ class DocumentOCRService:
             structured['confidence'] = 'high'
         
         return structured
+    
+    def get_json_serializable_data(self, structured: Dict) -> Dict:
+        """Convert structured data to JSON-serializable format"""
+        json_safe = structured.copy()
+        # Convert Decimal to float for JSON serialization
+        if json_safe.get('total_amount') is not None:
+            json_safe['total_amount'] = float(json_safe['total_amount'])
+        if json_safe.get('tax_amount') is not None:
+            json_safe['tax_amount'] = float(json_safe['tax_amount'])
+        return json_safe
     
     def get_confidence_level(self, confidence: int) -> Tuple[str, str]:
         """Get confidence level description in Arabic and English"""
