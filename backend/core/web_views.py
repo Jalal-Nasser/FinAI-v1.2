@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count, Q
+from django.conf import settings
 from decimal import Decimal
 from datetime import datetime, timedelta
 import logging

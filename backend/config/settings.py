@@ -164,6 +164,11 @@ SIMPLE_JWT = {
 # Emergent LLM Integration
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
+# Authentication URLs
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/login/'
+
 # File Upload Settings
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50MB (GCC requirement)
 ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/tiff']
