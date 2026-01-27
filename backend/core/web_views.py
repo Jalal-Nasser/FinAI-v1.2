@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count, Q
 from django.conf import settings
+from django.views.decorators.http import require_POST
 from decimal import Decimal
 from datetime import datetime, timedelta
 import logging
