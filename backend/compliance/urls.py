@@ -6,7 +6,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     RegulatoryReferenceViewSet, ZATCAInvoiceViewSet,
     VATReconciliationViewSet, ZakatCalculationViewSet,
-    AuditFindingViewSet, ComplianceDashboardViewSet
+    AuditFindingViewSet, ComplianceDashboardViewSet,
+    ZATCALiveVerificationViewSet
 )
 
 router = DefaultRouter()
@@ -16,6 +17,7 @@ router.register(r'vat-reconciliations', VATReconciliationViewSet)
 router.register(r'zakat-calculations', ZakatCalculationViewSet)
 router.register(r'audit-findings', AuditFindingViewSet)
 router.register(r'dashboard', ComplianceDashboardViewSet, basename='compliance-dashboard')
+router.register(r'zatca-verification', ZATCALiveVerificationViewSet, basename='zatca-verification')
 
 urlpatterns = [
     path('', include(router.urls)),
