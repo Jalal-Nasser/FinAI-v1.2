@@ -4,7 +4,8 @@
  */
 import axios from 'axios';
 
-const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+// Use relative path for platform deployment, or localhost for local dev
+const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
 
 // Create axios instance
 const api = axios.create({
