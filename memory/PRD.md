@@ -169,17 +169,12 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 
 ## 6. Upcoming/Future Tasks
 
-### P1 - High Priority
-1. **LLM Integration**: Dynamic AI explanations for audit findings using Emergent LLM Key
-   - File: `/app/backend/compliance/services.py`
-   - Replace static `ai_explanation_ar` with live LLM-generated Arabic explanations
-   - **WAITING FOR USER AUTHORIZATION**
-
 ### P2 - Medium Priority
 1. **Database Migration**: Move from SQLite to PostgreSQL for production
 2. **Dashboard Charts**: Add trend charts for income/expense over time
 3. **Multi-Language Toggle**: Add English translation option
 4. **Refactoring**: Split `web_views.py` into smaller focused files per app
+5. **AI Explanation Review Workflow**: Add UI for approving/rejecting AI explanations
 
 ### P3 - Future
 1. **Email Notifications**: Alert users of critical findings
