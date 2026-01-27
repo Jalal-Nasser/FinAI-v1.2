@@ -14,6 +14,7 @@ urlpatterns = [
     
     # Compliance
     path('compliance/', web_views.compliance_overview_view, name='compliance_overview'),
+    path('compliance/zatca-verify/', web_views.zatca_verification_view, name='zatca_verification'),
     
     # Audit Findings
     path('findings/', web_views.audit_findings_list_view, name='audit_findings_list'),
