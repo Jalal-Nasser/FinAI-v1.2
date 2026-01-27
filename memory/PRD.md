@@ -206,71 +206,16 @@ GET  /api/compliance/audit-findings/generate_report_ar/
 
 ---
 
-## 6. Architecture
+## 7. Test Credentials
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Frontend (React)                      │
-│   - Dashboard, Document Upload, Transaction List         │
-│   - Reports, Compliance, Settings                        │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                 Django REST API                          │
-│  ┌─────────┐ ┌──────────┐ ┌───────────┐ ┌──────────┐   │
-│  │  Core   │ │Documents │ │ Analytics │ │ Reports  │   │
-│  │ (Users, │ │(Accounts,│ │(KPIs,     │ │(Reports, │   │
-│  │  Orgs)  │ │ Txns)    │ │ Forecast) │ │ Insights)│   │
-│  └─────────┘ └──────────┘ └───────────┘ └──────────┘   │
-└────────────────────────┬────────────────────────────────┘
-                         │
-         ┌───────────────┼───────────────┐
-         ▼               ▼               ▼
-   ┌──────────┐    ┌──────────┐    ┌──────────┐
-   │  SQLite  │    │    AI    │    │  File    │
-   │ Database │    │ Service  │    │ Storage  │
-   └──────────┘    │(Emergent)│    └──────────┘
-                   └──────────┘
-```
+- **Admin**: `admin@finai.com` / `admin123`
+- **Auditor**: `test.auditor@al-faisaltradingcompany.com` / `auditor123`
 
----
-
-## 7. Technical Stack
-
-- **Backend**: Django 5.0, Django REST Framework
-- **Database**: SQLite (production-ready, upgradeable to PostgreSQL)
-- **Authentication**: JWT (SimpleJWT)
-- **AI Service**: Emergent LLM Key (OpenAI GPT-4o)
-- **Frontend**: React (to be implemented)
-
----
-
-## 8. Next Tasks
-
-1. Create React frontend dashboard
-2. Implement document upload UI with drag-and-drop
-3. Build transaction list with filtering and sorting
-4. Create audit flag resolution workflow UI
-5. Add compliance score dashboard widget
-
----
-
-## 9. Testing
-
-### Test Credentials
-- Admin: `admin@finai.com` / `admin123`
-- Auditor: `test.auditor@al-faisaltradingcompany.com` / `auditor123`
-- Accountant: `test.accountant@al-faisaltradingcompany.com` / `accountant123`
-
-### Seed Test Data
+### Seed Commands
 ```bash
 python manage.py seed_test_data
+python manage.py seed_compliance_data
 ```
-
-### API Testing
-All endpoints at `http://localhost:8001/api/`
-Health check at `http://localhost:8001/health`
 
 ---
 
