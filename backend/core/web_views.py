@@ -712,6 +712,9 @@ def document_upload_view(request):
                 document_type
             )
             
+            # Get JSON-serializable version for storage
+            structured_json = document_ocr_service.get_json_serializable_data(structured)
+            
             # Determine confidence level
             confidence = ocr_result.get('confidence', 0)
             if confidence >= 80:
