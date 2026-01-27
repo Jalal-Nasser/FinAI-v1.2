@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - FinAI{% endblock %}
+
+{% block content %}
+<div class="py-10">
+    <header>
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <h1 class="text-3xl font-bold leading-tight tracking-tight text-gray-900">Dashboard</h1>
+        </div>
+    </header>
+    <main>
+        <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <!-- Stats Cards -->
+            <div class="mt-8">
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Total Documents</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ stats.total_documents }}</dd>
+                    </div>
+                    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Pending Documents</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-orange-600">{{ stats.pending_documents }}</dd>
+                    </div>
+                    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Total Transactions</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ stats.total_transactions }}</dd>
+                    </div>
+                    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Unresolved Insights</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-red-600">{{ stats.unresolved_insights }}</dd>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Documents -->
+            <div class="mt-8">
+                <div class="overflow-hidden bg-white shadow sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg font-medium leading-6 text-gray-900">Recent Documents</h3>
+                    </div>
+                    <div class="border-t border-gray-200">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">File Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 bg-white">
+                                {% for doc in recent_documents %}
+                                <tr>
+                                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{{ doc.file_name }}</td>
+                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{{ doc.get_document_type_display }}</td>
+                                    <td class="whitespace-nowrap px-6 py-4 text-sm">
+                                        <span class="inline-flex rounded-full px-2 text-xs font-semibold leading-5 
+                                            {% if doc.status == 'completed' %}bg-green-100 text-green-800
+                                            {% elif doc.status == 'failed' %}bg-red-100 text-red-800
+                                            {% elif doc.status == 'processing' %}bg-blue-100 text-blue-800
+                                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                            {{ doc.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{{ doc.uploaded_at|date:"M d, Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No documents yet</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unresolved Insights -->
+            {% if insights %}
+            <div class="mt-8">
+                <div class="overflow-hidden bg-white shadow sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg font-medium leading-6 text-gray-900">Unresolved Insights</h3>
+                    </div>
+                    <div class="border-t border-gray-200">
+                        <ul role="list" class="divide-y divide-gray-200">
+                            {% for insight in insights %}
+                            <li class="px-6 py-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold
+                                            {% if insight.severity == 'critical' %}bg-red-100 text-red-800
+                                            {% elif insight.severity == 'high' %}bg-orange-100 text-orange-800
+                                            {% elif insight.severity == 'medium' %}bg-yellow-100 text-yellow-800
+                                            {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                            {{ insight.get_severity_display }}
+                                        </span>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">{{ insight.title }}</p>
+                                            <p class="text-sm text-gray-500">{{ insight.description|truncatewords:20 }}</p>
+                                        </div>
+                                    </div>
+                                    <form method="post" action="{% url 'resolve_insight' insight.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-sm text-indigo-600 hover:text-indigo-900">Resolve</button>
+                                    </form>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}
