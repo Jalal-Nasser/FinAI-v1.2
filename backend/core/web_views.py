@@ -3,10 +3,20 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
+from django.core.paginator import Paginator
+from django.db.models import Sum, Count, Q
+from decimal import Decimal
+from datetime import datetime, timedelta
+
 from core.models import User, Organization
-from documents.models import Document, Transaction
+from documents.models import Document, Transaction, Account
 from reports.models import Report, Insight
-from django.db.models import Count, Sum
+from compliance.models import (
+    AuditFinding, ZATCAInvoice, VATReconciliation, 
+    ZakatCalculation, RegulatoryReference
+)
+from compliance.services import arabic_report_service
+
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -21,13 +31,15 @@ def login_view(request):
             auth_login(request, user)
             return redirect('dashboard')
         else:
-            messages.error(request, 'Invalid email or password')
+            messages.error(request, 'البريد الإلكتروني أو كلمة المرور غير صحيحة')
     
     return render(request, 'login.html')
+
 
 def logout_view(request):
     auth_logout(request)
     return redirect('login')
+
 
 @login_required
 def dashboard_view(request):
@@ -37,34 +49,375 @@ def dashboard_view(request):
     if not organization:
         return render(request, 'no_organization.html')
     
-    # Get statistics
+    # Get basic statistics
     stats = {
         'total_documents': Document.objects.filter(organization=organization).count(),
         'pending_documents': Document.objects.filter(organization=organization, status='pending').count(),
         'total_transactions': Transaction.objects.filter(organization=organization).count(),
-        'unresolved_insights': Insight.objects.filter(organization=organization, is_resolved=False).count(),
+        'total_accounts': Account.objects.filter(organization=organization).count(),
+        'total_findings': AuditFinding.objects.filter(organization=organization).count(),
+        'anomaly_count': Transaction.objects.filter(organization=organization, is_anomaly=True).count(),
     }
     
-    # Get recent documents
-    recent_documents = Document.objects.filter(organization=organization).order_by('-uploaded_at')[:10]
+    # Calculate compliance score
+    findings = AuditFinding.objects.filter(organization=organization)
+    total_findings = findings.count()
+    resolved_findings = findings.filter(is_resolved=True).count()
+    stats['compliance_score'] = int((1 - (total_findings - resolved_findings) / max(total_findings, 1)) * 100) if total_findings > 0 else 100
     
-    # Get unresolved insights
-    insights = Insight.objects.filter(organization=organization, is_resolved=False).order_by('-created_at')[:5]
+    # Get compliance summary
+    compliance_summary = {
+        'zatca_checks': ZATCAInvoice.objects.filter(organization=organization).count(),
+        'zatca_passed': ZATCAInvoice.objects.filter(organization=organization, status='cleared').count() > 0 or ZATCAInvoice.objects.filter(organization=organization).count() == 0,
+        'vat_reconciliations': VATReconciliation.objects.filter(organization=organization).count(),
+        'vat_variance': VATReconciliation.objects.filter(organization=organization).aggregate(total=Sum('total_variance'))['total'] or Decimal('0'),
+        'zakat_calculations': ZakatCalculation.objects.filter(organization=organization).count(),
+        'zakat_due': ZakatCalculation.objects.filter(organization=organization).order_by('-fiscal_year_end').first().zakat_due if ZakatCalculation.objects.filter(organization=organization).exists() else Decimal('0'),
+    }
+    
+    # Recent findings (top 5)
+    recent_findings = AuditFinding.objects.filter(organization=organization).order_by('-created_at')[:5]
+    
+    # Anomalous transactions (top 5)
+    anomalous_transactions = Transaction.objects.filter(
+        organization=organization, 
+        is_anomaly=True
+    ).order_by('-transaction_date')[:5]
+    
+    # Recent transactions (top 10)
+    recent_transactions = Transaction.objects.filter(organization=organization).order_by('-transaction_date')[:10]
     
     context = {
         'stats': stats,
-        'recent_documents': recent_documents,
-        'insights': insights,
+        'compliance_summary': compliance_summary,
+        'recent_findings': recent_findings,
+        'anomalous_transactions': anomalous_transactions,
+        'recent_transactions': recent_transactions,
+        'now': timezone.now(),
     }
     
     return render(request, 'dashboard.html', context)
+
+
+@login_required
+def compliance_overview_view(request):
+    user = request.user
+    organization = user.organization
+    
+    if not organization:
+        return render(request, 'no_organization.html')
+    
+    # Calculate scores
+    zatca_invoices = ZATCAInvoice.objects.filter(organization=organization)
+    zatca_valid = zatca_invoices.filter(status__in=['validated', 'cleared']).count()
+    zatca_score = int((zatca_valid / max(zatca_invoices.count(), 1)) * 100) if zatca_invoices.exists() else 100
+    
+    vat_reconciliations = VATReconciliation.objects.filter(organization=organization)
+    vat_score = vat_reconciliations.aggregate(avg=Sum('compliance_score'))['avg']
+    vat_score = int(vat_score / max(vat_reconciliations.count(), 1)) if vat_score else 100
+    
+    zakat_calcs = ZakatCalculation.objects.filter(organization=organization)
+    zakat_score = zakat_calcs.aggregate(avg=Sum('compliance_score'))['avg']
+    zakat_score = int(zakat_score / max(zakat_calcs.count(), 1)) if zakat_score else 100
+    
+    # Overall score
+    overall_score = int((zatca_score + vat_score + zakat_score) / 3)
+    
+    # Audit findings
+    findings = AuditFinding.objects.filter(organization=organization)
+    total_findings = findings.count()
+    unresolved_findings = findings.filter(is_resolved=False).count()
+    
+    # Latest zakat
+    latest_zakat = ZakatCalculation.objects.filter(organization=organization).order_by('-fiscal_year_end').first()
+    
+    # Regulatory references
+    regulatory_references = RegulatoryReference.objects.filter(is_active=True)[:10]
+    
+    context = {
+        'organization': organization,
+        'overall_score': overall_score,
+        'zatca_score': zatca_score,
+        'vat_score': vat_score,
+        'zakat_score': zakat_score,
+        'zatca_invoices_count': zatca_invoices.count(),
+        'vat_reconciliations_count': vat_reconciliations.count(),
+        'zakat_due': latest_zakat.zakat_due if latest_zakat else Decimal('0'),
+        'total_findings': total_findings,
+        'unresolved_findings': unresolved_findings,
+        'zatca_invoices': zatca_invoices[:10],
+        'vat_reconciliations': vat_reconciliations[:5],
+        'latest_zakat': latest_zakat,
+        'regulatory_references': regulatory_references,
+    }
+    
+    return render(request, 'compliance/overview.html', context)
+
+
+@login_required
+def audit_findings_list_view(request):
+    user = request.user
+    organization = user.organization
+    
+    if not organization:
+        return render(request, 'no_organization.html')
+    
+    findings = AuditFinding.objects.filter(organization=organization)
+    
+    # Apply filters
+    risk_level = request.GET.get('risk_level')
+    finding_type = request.GET.get('finding_type')
+    status = request.GET.get('status')
+    
+    if risk_level:
+        findings = findings.filter(risk_level=risk_level)
+    if finding_type:
+        findings = findings.filter(finding_type=finding_type)
+    if status == 'resolved':
+        findings = findings.filter(is_resolved=True)
+    elif status == 'unresolved':
+        findings = findings.filter(is_resolved=False)
+    
+    findings = findings.order_by('-created_at')
+    
+    # Count by risk level
+    all_findings = AuditFinding.objects.filter(organization=organization)
+    findings_by_risk = {
+        'critical': all_findings.filter(risk_level='critical').count(),
+        'high': all_findings.filter(risk_level='high').count(),
+        'medium': all_findings.filter(risk_level='medium').count(),
+        'low': all_findings.filter(risk_level='low').count(),
+    }
+    
+    # Pagination
+    paginator = Paginator(findings, 20)
+    page_number = request.GET.get('page')
+    findings_page = paginator.get_page(page_number)
+    
+    context = {
+        'findings': findings_page,
+        'findings_by_risk': findings_by_risk,
+    }
+    
+    return render(request, 'findings/list.html', context)
+
+
+@login_required
+def audit_finding_detail_view(request, finding_id):
+    user = request.user
+    organization = user.organization
+    
+    finding = get_object_or_404(AuditFinding, id=finding_id, organization=organization)
+    
+    context = {
+        'finding': finding,
+    }
+    
+    return render(request, 'findings/detail.html', context)
+
+
+@login_required
+def transactions_view(request):
+    user = request.user
+    organization = user.organization
+    
+    if not organization:
+        return render(request, 'no_organization.html')
+    
+    transactions = Transaction.objects.filter(organization=organization)
+    
+    # Apply filters
+    txn_type = request.GET.get('type')
+    anomaly = request.GET.get('anomaly')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    if txn_type:
+        transactions = transactions.filter(transaction_type=txn_type)
+    if anomaly == '1':
+        transactions = transactions.filter(is_anomaly=True)
+    elif anomaly == '0':
+        transactions = transactions.filter(is_anomaly=False)
+    if date_from:
+        transactions = transactions.filter(transaction_date__gte=date_from)
+    if date_to:
+        transactions = transactions.filter(transaction_date__lte=date_to)
+    
+    transactions = transactions.order_by('-transaction_date')
+    
+    # Calculate totals
+    all_txns = Transaction.objects.filter(organization=organization)
+    income_total = all_txns.filter(transaction_type='income').aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    expense_total = all_txns.filter(transaction_type='expense').aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    anomaly_count = all_txns.filter(is_anomaly=True).count()
+    total_count = all_txns.count()
+    
+    # Pagination
+    paginator = Paginator(transactions, 50)
+    page_number = request.GET.get('page')
+    transactions_page = paginator.get_page(page_number)
+    
+    context = {
+        'transactions': transactions_page,
+        'total_count': total_count,
+        'anomaly_count': anomaly_count,
+        'income_total': income_total,
+        'expense_total': expense_total,
+    }
+    
+    return render(request, 'transactions.html', context)
+
+
+@login_required
+def transaction_detail_view(request, transaction_id):
+    user = request.user
+    organization = user.organization
+    
+    transaction = get_object_or_404(Transaction, id=transaction_id, organization=organization)
+    
+    # Get related audit findings
+    audit_findings = AuditFinding.objects.filter(
+        organization=organization,
+        related_entity_type='Transaction',
+        related_entity_id=transaction.id
+    )
+    
+    context = {
+        'transaction': transaction,
+        'audit_findings': audit_findings,
+    }
+    
+    return render(request, 'transactions_detail.html', context)
+
+
+@login_required
+def accounts_list_view(request):
+    user = request.user
+    organization = user.organization
+    
+    if not organization:
+        return render(request, 'no_organization.html')
+    
+    accounts = Account.objects.filter(organization=organization)
+    
+    # Apply filters
+    account_type = request.GET.get('type')
+    search = request.GET.get('search')
+    
+    if account_type:
+        accounts = accounts.filter(account_type=account_type)
+    if search:
+        accounts = accounts.filter(
+            Q(account_name__icontains=search) | 
+            Q(account_code__icontains=search) |
+            Q(account_name_ar__icontains=search)
+        )
+    
+    accounts = accounts.order_by('account_code')
+    
+    # Calculate summary by type
+    all_accounts = Account.objects.filter(organization=organization)
+    summary = {
+        'asset': all_accounts.filter(account_type='asset').aggregate(total=Sum('current_balance'))['total'] or Decimal('0'),
+        'liability': all_accounts.filter(account_type='liability').aggregate(total=Sum('current_balance'))['total'] or Decimal('0'),
+        'equity': all_accounts.filter(account_type='equity').aggregate(total=Sum('current_balance'))['total'] or Decimal('0'),
+        'revenue': all_accounts.filter(account_type='revenue').aggregate(total=Sum('current_balance'))['total'] or Decimal('0'),
+        'expense': all_accounts.filter(account_type='expense').aggregate(total=Sum('current_balance'))['total'] or Decimal('0'),
+    }
+    
+    # Pagination
+    paginator = Paginator(accounts, 50)
+    page_number = request.GET.get('page')
+    accounts_page = paginator.get_page(page_number)
+    
+    context = {
+        'accounts': accounts_page,
+        'accounts_count': all_accounts.count(),
+        'summary': summary,
+    }
+    
+    return render(request, 'accounts/list.html', context)
+
+
+@login_required
+def account_detail_view(request, account_id):
+    user = request.user
+    organization = user.organization
+    
+    account = get_object_or_404(Account, id=account_id, organization=organization)
+    
+    # Get sub-accounts
+    sub_accounts = Account.objects.filter(parent_account=account)
+    
+    # Get recent transactions for this account
+    recent_transactions = Transaction.objects.filter(
+        organization=organization,
+        account=account
+    ).order_by('-transaction_date')[:20]
+    
+    transactions_count = Transaction.objects.filter(
+        organization=organization,
+        account=account
+    ).count()
+    
+    context = {
+        'account': account,
+        'sub_accounts': sub_accounts,
+        'recent_transactions': recent_transactions,
+        'transactions_count': transactions_count,
+    }
+    
+    return render(request, 'accounts/detail.html', context)
+
+
+@login_required
+def arabic_report_view(request):
+    user = request.user
+    organization = user.organization
+    
+    if not organization:
+        return render(request, 'no_organization.html')
+    
+    # Get all findings for the report
+    findings = AuditFinding.objects.filter(organization=organization)
+    findings_data = []
+    for f in findings:
+        findings_data.append({
+            'finding_number': f.finding_number,
+            'finding_type': f.finding_type,
+            'risk_level': f.risk_level,
+            'title_ar': f.title_ar,
+            'description_ar': f.description_ar,
+            'impact_ar': f.impact_ar,
+            'recommendation_ar': f.recommendation_ar,
+            'financial_impact': f.financial_impact,
+            'is_resolved': f.is_resolved,
+        })
+    
+    # Generate report
+    thirty_days_ago = timezone.now().date() - timedelta(days=30)
+    today = timezone.now().date()
+    
+    report = arabic_report_service.generate_audit_report_ar(
+        organization_id=str(organization.id),
+        findings=findings_data,
+        period_start=thirty_days_ago,
+        period_end=today
+    )
+    
+    context = {
+        'organization': organization,
+        'report': report,
+    }
+    
+    return render(request, 'reports/arabic_report.html', context)
+
 
 @login_required
 def documents_view(request):
     user = request.user
     organization = user.organization
     
-    # Limit to 100 most recent documents for performance
     documents = Document.objects.filter(organization=organization).order_by('-uploaded_at')[:100]
     
     context = {
@@ -73,19 +426,6 @@ def documents_view(request):
     
     return render(request, 'documents.html', context)
 
-@login_required
-def transactions_view(request):
-    user = request.user
-    organization = user.organization
-    
-    # Limit to 200 most recent transactions for performance
-    transactions = Transaction.objects.filter(organization=organization).order_by('-transaction_date')[:200]
-    
-    context = {
-        'transactions': transactions,
-    }
-    
-    return render(request, 'transactions.html', context)
 
 @login_required
 def reports_list_view(request):
@@ -100,14 +440,11 @@ def reports_list_view(request):
     
     return render(request, 'reports.html', context)
 
+
 @login_required
 def analytics_dashboard_view(request):
     user = request.user
     organization = user.organization
-    
-    # Get basic analytics data
-    from datetime import datetime, timedelta
-    from decimal import Decimal
     
     thirty_days_ago = timezone.now() - timedelta(days=30)
     
@@ -135,6 +472,7 @@ def analytics_dashboard_view(request):
     
     return render(request, 'analytics.html', context)
 
+
 @login_required
 def resolve_insight_view(request, insight_id):
     insight = get_object_or_404(Insight, id=insight_id, organization=request.user.organization)
@@ -144,6 +482,6 @@ def resolve_insight_view(request, insight_id):
         insight.resolved_by = request.user
         insight.resolved_at = timezone.now()
         insight.save()
-        messages.success(request, 'Insight resolved successfully')
+        messages.success(request, 'تم حل الملاحظة بنجاح')
     
     return redirect('dashboard')
