@@ -912,6 +912,91 @@ def toggle_language_view(request):
     current_lang = request.session.get('language', 'ar')
     new_lang = 'en' if current_lang == 'ar' else 'ar'
     request.session['language'] = new_lang
+
+
+@login_required
+def zatca_verification_view(request):
+    """
+    صفحة التحقق من الفواتير عبر ZATCA API
+    ZATCA Invoice Verification Page
+    
+    SCOPE: VERIFICATION ONLY - No submission, clearance, or signing
+    """
+    from compliance.zatca_api_service import zatca_api_service
+    from compliance.models import ZATCALiveVerificationReport
+    
+    user = request.user
+    organization = user.organization
+    
+    verification_result = None
+    
+    if request.method == 'POST':
+        verification_type = request.POST.get('verification_type', 'vat')
+        
+        if verification_type == 'vat':
+            vat_number = request.POST.get('vat_number', '').strip()
+            if vat_number:
+                verification_result = zatca_api_service.verify_vat_number(vat_number)
+                
+                # Store as audit evidence
+                ZATCALiveVerificationReport.objects.create(
+                    organization=organization,
+                    invoice_uuid=verification_result.get('verification_id'),
+                    verification_type='vat_number',
+                    overall_status='valid' if verification_result.get('valid') else 'invalid',
+                    compliance_score=100 if verification_result.get('valid') else 0,
+                    passed_checks=1 if verification_result.get('valid') else 0,
+                    failed_checks=0 if verification_result.get('valid') else 1,
+                    raw_response_json=verification_result,
+                    verified_by=user,
+                )
+                
+                if verification_result.get('valid'):
+                    messages.success(request, verification_result.get('message_ar', 'تم التحقق بنجاح'))
+                else:
+                    messages.error(request, verification_result.get('error_message_ar', 'فشل التحقق'))
+        
+        elif verification_type == 'invoice':
+            invoice_xml = request.POST.get('invoice_xml', '')
+            invoice_hash = request.POST.get('invoice_hash', '')
+            invoice_uuid = request.POST.get('invoice_uuid', '')
+            
+            if invoice_xml and invoice_uuid:
+                verification_result = zatca_api_service.verify_invoice_structure(
+                    invoice_xml, invoice_hash, invoice_uuid
+                )
+                
+                # Store as audit evidence
+                ZATCALiveVerificationReport.objects.create(
+                    organization=organization,
+                    invoice_uuid=invoice_uuid,
+                    verification_type='invoice_structure',
+                    overall_status='valid' if verification_result.get('valid') else 'invalid',
+                    compliance_score=verification_result.get('compliance_score', 0),
+                    passed_checks=verification_result.get('passed_count', 0),
+                    failed_checks=verification_result.get('failed_count', 0),
+                    raw_response_json=verification_result,
+                    verified_by=user,
+                )
+                
+                if verification_result.get('valid'):
+                    messages.success(request, verification_result.get('message_ar', 'تم التحقق بنجاح'))
+                else:
+                    messages.error(request, verification_result.get('message_ar', 'فشل التحقق'))
+    
+    # Get recent verifications
+    recent_verifications = ZATCALiveVerificationReport.objects.filter(
+        organization=organization
+    ).order_by('-verification_timestamp')[:10]
+    
+    context = {
+        'verification_result': verification_result,
+        'recent_verifications': recent_verifications,
+        'scope_docs': zatca_api_service.get_scope_documentation(),
+    }
+    
+    return render(request, 'compliance/zatca_verification.html', context)
+
     
     # Get the referring page or default to dashboard
     referer = request.META.get('HTTP_REFERER', '/')
