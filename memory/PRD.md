@@ -1,9 +1,9 @@
 # FinAI - AI-Powered Financial Audit Platform
 ## Product Requirements Document (PRD)
 
-**Version**: 2.0  
+**Version**: 3.0  
 **Last Updated**: January 27, 2026  
-**Status**: Phase 2 Complete (ZATCA/VAT/Zakat/Arabic Reports)
+**Status**: Phase 3 Complete - Django Template Frontend
 
 ---
 
@@ -21,202 +21,133 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 - **VAT reconciliation and audit**
 - **Zakat calculation and comparison**
 - **Arabic-first reporting**
+- **Server-rendered Django Template frontend (Arabic RTL)**
 
 ---
 
-## 2. User Personas
+## 2. What Has Been Implemented
 
-### 2.1 Auditor (المدقق)
-- Reviews flagged transactions
-- Investigates anomalies
-- Resolves compliance issues
-- Generates Arabic audit reports
+### Phase 1: Backend Core (Complete)
+- User authentication with JWT
+- Organization management
+- Document upload and processing models
+- Transaction and Account models (Chart of Accounts)
+- Journal Entry (double-entry bookkeeping)
+- Compliance check models
+- Audit flags and insights
 
-### 2.2 Accountant (المحاسب)
-- Uploads and processes documents
-- Creates transactions and journal entries
-- Validates extracted data
-- Prepares VAT reconciliations
+### Phase 2: Compliance Module (Complete)
+- **ZATCA E-Invoice Validation**: Pre-integration validation for Saudi e-invoicing requirements
+- **VAT Reconciliation**: Compare VAT collected vs. reported with variance analysis
+- **Zakat Calculation**: Calculate Zakat base and amount with detailed breakdown
+- **Arabic Audit Reports**: Generate comprehensive Arabic audit reports
+- **Regulatory References**: Database of regulatory articles/clauses (ZATCA, IFRS, etc.)
+- **Audit Findings**: Track and manage audit findings with risk levels
 
-### 2.3 Finance Manager (المدير المالي)
-- Monitors KPIs and trends
-- Reviews compliance scores
-- Approves reports
-- Oversees Zakat calculations
-
-### 2.4 Admin (المشرف)
-- Manages users and organizations
-- System-wide configuration
-- Full access to all features
-
----
-
-## 3. Core Requirements
-
-### 3.1 Document Processing ✅
-- [x] Upload documents (PDF, JPG, PNG, TIFF)
-- [x] Batch upload support
-- [x] AI-powered OCR with Arabic/English support
-- [x] Confidence scoring
-- [x] Manual validation workflow
-- [x] 50MB file limit
-
-### 3.2 Financial Data Management ✅
-- [x] Chart of Accounts
-- [x] Transaction management
-- [x] Journal entries (double-entry)
-- [x] VAT calculation and tracking
-- [x] Multi-currency support
-
-### 3.3 ZATCA Compliance (Saudi Arabia) ✅ NEW
-- [x] E-Invoice validation service
-- [x] Mandatory field checks
-- [x] VAT number format validation (15-digit)
-- [x] UUID validation
-- [x] VAT calculation verification
-- [x] Invoice date validation
-- [x] Hash calculation for integrity
-- [x] Validation results storage
-
-### 3.4 VAT Reconciliation ✅ NEW
-- [x] Output VAT (sales) calculation
-- [x] Input VAT (purchases) calculation
-- [x] GL balance comparison
-- [x] Variance detection and reporting
-- [x] Discrepancy categorization
-- [x] Compliance scoring
-
-### 3.5 Zakat Calculation ✅ NEW
-- [x] Positive Zakat base components
-- [x] Deductions (fixed assets, losses)
-- [x] Net Zakat base calculation
-- [x] 2.5% rate application
-- [x] Zakat vs Tax comparison
-- [x] Discrepancy detection
-- [x] Arabic explanations
-
-### 3.6 Arabic Reporting ✅ NEW
-- [x] Formal Arabic audit reports
-- [x] Executive summary generation
-- [x] Risk level in Arabic (حرج، مرتفع، متوسط، منخفض)
-- [x] Regulatory reference mapping
-- [x] Recommendations in Arabic
-- [x] Professional conclusion
-
-### 3.7 Regulatory Mapping ✅ NEW
-- [x] RegulatoryReference model
-- [x] Article/clause identification
-- [x] Bilingual content (Arabic primary)
-- [x] Penalty information
-- [x] Finding linkage
+### Phase 3: Django Template Frontend (Complete - Jan 27, 2026)
+- **Arabic RTL Layout**: Full right-to-left support with IBM Plex Sans Arabic font
+- **Data-Rich Dashboard**: Statistics, compliance summary, recent findings, anomalies, transactions
+- **Compliance Overview**: ZATCA score, VAT score, Zakat score with breakdowns
+- **Audit Findings**: List with filters (risk level, type, status), detail views with AI explanations
+- **Transactions Page**: Filterable table with type, anomaly, date filters
+- **Accounts Page**: Chart of accounts with type summary and balance display
+- **Arabic Audit Report**: Printable report with executive summary, findings, recommendations, conclusion
+- **Navigation**: Full Arabic navigation bar with 6 menu items
 
 ---
 
-## 4. What's Been Implemented
+## 3. Architecture
 
-### Phase 1 (January 27, 2026)
-- Account, JournalEntry, ComplianceCheck, AuditFlag models
-- 8 new API endpoints for accounts, compliance, audit flags
-- Test dataset seeding (300 transactions)
+### Backend (Django)
+```
+/app/backend/
+├── config/          # Settings, URLs
+├── core/            # User, Organization, Web Views
+├── documents/       # Document, Transaction, Account, JournalEntry models
+├── reports/         # Report, Insight models
+├── compliance/      # ZATCA, VAT, Zakat, AuditFinding models
+├── templates/       # Django Templates (Arabic RTL)
+│   ├── base.html
+│   ├── login.html
+│   ├── dashboard.html
+│   ├── compliance/overview.html
+│   ├── findings/list.html, detail.html
+│   ├── transactions.html, transactions_detail.html
+│   ├── accounts/list.html, detail.html
+│   └── reports/arabic_report.html
+└── db.sqlite3
+```
 
-### Phase 2 (January 27, 2026)
-**New Compliance App** (`/app/backend/compliance/`):
-- **Models**: RegulatoryReference, ZATCAInvoice, ZATCAValidationResult, VATReconciliation, VATDiscrepancy, ZakatCalculation, ZakatDiscrepancy, AuditFinding
-- **Services**: ZATCAValidationService, VATReconciliationService, ZakatCalculationService, ArabicReportService
-- **API Endpoints**:
-  - `/api/compliance/dashboard/overview/`
-  - `/api/compliance/regulatory-references/`
-  - `/api/compliance/zatca-invoices/` (with validation)
-  - `/api/compliance/vat-reconciliations/` (with calculate)
-  - `/api/compliance/zakat-calculations/` (with calculate)
-  - `/api/compliance/audit-findings/` (with Arabic report)
+### Frontend Routing
+- `/` - Dashboard (requires login)
+- `/login/` - Login page
+- `/logout/` - Logout
+- `/compliance/` - Compliance overview
+- `/findings/` - Audit findings list
+- `/findings/<id>/` - Finding detail
+- `/transactions/` - Transactions list
+- `/transactions/<id>/` - Transaction detail
+- `/accounts/` - Accounts list
+- `/accounts/<id>/` - Account detail
+- `/report/arabic/` - Arabic audit report
 
-**Test Data**:
-- 6 regulatory references (ZATCA articles)
-- 20 ZATCA invoices
-- 2 VAT reconciliations
-- 2 Zakat calculations
-- 8 audit findings with Arabic content
+### Proxy Configuration
+- Nginx on port 3000 proxies to Django on port 8001
+- External URL: https://finai-audit.preview.emergentagent.com
 
 ---
 
-## 5. API Summary
+## 4. Test Credentials
 
-### Authentication
-```
-POST /api/auth/token/
-POST /api/auth/token/refresh/
-```
-
-### Core
-```
-GET  /api/core/organizations/
-GET  /api/core/users/
-```
-
-### Documents
-```
-GET  /api/documents/documents/
-POST /api/documents/documents/upload/
-POST /api/documents/documents/batch_upload/
-GET  /api/documents/transactions/
-GET  /api/documents/accounts/
-GET  /api/documents/journal-entries/
-GET  /api/documents/compliance-checks/
-GET  /api/documents/audit-flags/
-```
-
-### Compliance (NEW)
-```
-GET  /api/compliance/dashboard/overview/
-GET  /api/compliance/regulatory-references/
-GET  /api/compliance/zatca-invoices/
-GET  /api/compliance/zatca-invoices/{id}/validate/
-GET  /api/compliance/zatca-invoices/compliance_summary/
-GET  /api/compliance/vat-reconciliations/
-POST /api/compliance/vat-reconciliations/calculate/
-GET  /api/compliance/vat-reconciliations/variance_report/
-GET  /api/compliance/zakat-calculations/
-POST /api/compliance/zakat-calculations/calculate/
-GET  /api/compliance/audit-findings/
-GET  /api/compliance/audit-findings/dashboard/
-GET  /api/compliance/audit-findings/generate_report_ar/
-```
+- **Email**: admin@finai.com
+- **Password**: admin123
+- **Organization**: FinAI Demo Company
 
 ---
 
-## 6. Prioritized Backlog
+## 5. Test Data
 
-### P0 - Critical (Next Sprint)
-- [ ] React frontend dashboard (Arabic-first, RTL)
-- [ ] Compliance score widgets
-- [ ] Audit flag resolution UI
-- [ ] Arabic report viewer/export
+- 50 transactions
+- 16 accounts (Chart of Accounts)
+- 4 audit findings
+- 10 ZATCA invoices
+- 1 VAT reconciliation
+- 1 Zakat calculation
+- Regulatory references
+
+---
+
+## 6. Upcoming/Future Tasks (P1/P2)
 
 ### P1 - High Priority
-- [ ] Live ZATCA API integration (Phase 3)
-- [ ] Automated VAT return generation
-- [ ] Email notifications for critical flags
-- [ ] Shariah compliance rules
+1. **Full ZATCA API Integration**: Connect to live ZATCA API for invoice reporting/clearing
+2. **LLM Integration**: Dynamic AI explanations for audit findings using Emergent LLM Key
+3. **Transaction Detail Drill-Down**: Link audit findings to specific transactions
 
 ### P2 - Medium Priority
-- [ ] Balance sheet report
-- [ ] Currency conversion service
-- [ ] Bulk transaction import
+1. **Database Migration**: Move from SQLite to PostgreSQL for production
+2. **PDF Report Generation**: Export Arabic audit reports as PDF
+3. **Dashboard Charts**: Add trend charts for income/expense over time
+4. **Multi-Language Toggle**: Add English translation option
+
+### P3 - Future
+1. **Document Upload**: Full document processing workflow
+2. **Email Notifications**: Alert users of critical findings
+3. **Role-Based Access**: Granular permissions by user role
 
 ---
 
-## 7. Test Credentials
+## 7. Test Reports
 
-- **Admin**: `admin@finai.com` / `admin123`
-- **Auditor**: `test.auditor@al-faisaltradingcompany.com` / `auditor123`
-
-### Seed Commands
-```bash
-python manage.py seed_test_data
-python manage.py seed_compliance_data
-```
+- `/app/test_reports/iteration_1.json` - Backend API tests (passed)
+- `/app/test_reports/iteration_2.json` - Backend quality gate (passed)
+- `/app/test_reports/iteration_3.json` - Frontend tests (28/28 passed, 100%)
 
 ---
 
-*Document maintained by FinAI Development Team*
+## 8. Design Principles
+
+- **Arabic-First**: All UI in Arabic with RTL layout
+- **Data-Rich**: Tables over cards, high information density
+- **Minimal**: Minimal colors and animations, regulator-friendly
+- **Auditor-Focused**: Conservative, professional design for compliance officers
