@@ -17,6 +17,10 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 - Multi-country GCC compliance
 - Financial analytics and reporting
 - Audit trail and traceability
+- **ZATCA e-invoicing compliance (Saudi Arabia)**
+- **VAT reconciliation and audit**
+- **Zakat calculation and comparison**
+- **Arabic-first reporting**
 
 ---
 
