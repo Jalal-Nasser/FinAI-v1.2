@@ -27,6 +27,7 @@ urlpatterns = [
     # Reports
     path('reports/', web_views.reports_list_view, name='reports_list'),
     path('report/arabic/', web_views.arabic_report_view, name='arabic_report'),
+    path('report/pdf/', web_views.download_pdf_report_view, name='download_pdf_report'),
     
     # Legacy views
     path('documents/', web_views.documents_view, name='documents'),
