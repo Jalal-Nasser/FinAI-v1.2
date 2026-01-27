@@ -106,13 +106,58 @@
         </div>
 
         <!-- AI Explanation -->
-        {% if finding.ai_explanation_ar %}
         <div class="bg-blue-50 border border-blue-200 rounded">
-            <div class="px-4 py-3 border-b border-blue-200">
+            <div class="px-4 py-3 border-b border-blue-200 flex items-center justify-between">
                 <h2 class="font-semibold text-blue-800">تحليل الذكاء الاصطناعي</h2>
+                <form method="post" action="{% url 'generate_ai_explanation' finding.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            data-testid="generate-ai-btn"
+                            class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
+                        توليد شرح جديد
+                    </button>
+                </form>
             </div>
             <div class="p-4">
-                <div class="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap" data-testid="ai-explanation">{{ finding.ai_explanation_ar }}</div>
+                {% if finding.ai_explanation_ar %}
+                <div class="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap mb-4" data-testid="ai-explanation">{{ finding.ai_explanation_ar }}</div>
+                <div class="text-xs text-blue-600 flex items-center gap-4 pt-3 border-t border-blue-200">
+                    <span>درجة الثقة: {{ finding.ai_confidence }}%</span>
+                    <span class="text-blue-400">|</span>
+                    <span class="text-amber-600 font-medium">⚠️ استشاري فقط - يتطلب مراجعة بشرية</span>
+                </div>
+                {% else %}
+                <div class="text-sm text-blue-600 text-center py-4">
+                    لم يتم توليد شرح ذكي بعد. اضغط على "توليد شرح جديد" للحصول على تحليل الذكاء الاصطناعي.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- AI Explanation History -->
+        {% if ai_explanation_logs %}
+        <div class="bg-white border border-slate-200 rounded">
+            <div class="px-4 py-3 border-b border-slate-200">
+                <h2 class="font-semibold text-slate-700">سجل الشروحات الذكية</h2>
+                <p class="text-xs text-slate-500 mt-1">جميع الشروحات استشارية فقط وتتطلب مراجعة بشرية</p>
+            </div>
+            <div class="divide-y divide-slate-100">
+                {% for log in ai_explanation_logs %}
+                <div class="p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="badge {% if log.approval_status == 'approved' %}badge-success{% elif log.approval_status == 'rejected' %}badge-danger{% else %}badge-warning{% endif %}">
+                            {{ log.get_approval_status_display }}
+                        </span>
+                        <span class="text-xs text-slate-400 mono">{{ log.generated_at|date:"Y/m/d H:i" }}</span>
+                    </div>
+                    <div class="text-sm text-slate-600 leading-relaxed line-clamp-3">{{ log.explanation_ar|truncatechars:300 }}</div>
+                    <div class="mt-2 text-xs text-slate-400 flex items-center gap-3">
+                        <span>الموديل: {{ log.model_used }}</span>
+                        <span>الثقة: {{ log.confidence_score }}%</span>
+                        <span>وقت المعالجة: {{ log.processing_time_ms }}ms</span>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
         {% endif %}
