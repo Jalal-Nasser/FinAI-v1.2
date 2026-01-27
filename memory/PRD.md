@@ -1,9 +1,9 @@
 # FinAI - AI-Powered Financial Audit Platform
 ## Product Requirements Document (PRD)
 
-**Version**: 4.0  
+**Version**: 5.0  
 **Last Updated**: January 27, 2026  
-**Status**: Phase 4 Complete - ZATCA Live Verification
+**Status**: Phase 6 Complete - Document OCR & PDF Reports
 
 ---
 
@@ -23,6 +23,8 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 - **Arabic-first reporting**
 - **Server-rendered Django Template frontend (Arabic RTL)**
 - **ZATCA Live Verification (READ-ONLY)**
+- **Arabic PDF Audit Reports**
+- **Document Ingestion with OCR (Tesseract)**
 
 ---
 
@@ -48,33 +50,35 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 ### Phase 3: Django Template Frontend (Complete - Jan 27, 2026)
 - **Arabic RTL Layout**: Full right-to-left support with IBM Plex Sans Arabic font
 - **Data-Rich Dashboard**: Statistics, compliance summary, recent findings, anomalies, transactions
-- **Compliance Overview**: ZATCA score, VAT score, Zakat score with breakdowns
+- **Compliance Overview**: ZATCA score (100%), VAT score (85%), Zakat score (90%) with breakdowns
 - **Audit Findings**: List with filters (risk level, type, status), detail views with AI explanations
 - **Transactions Page**: Filterable table with type, anomaly, date filters
 - **Accounts Page**: Chart of accounts with type summary and balance display
 - **Arabic Audit Report**: Printable report with executive summary, findings, recommendations, conclusion
-- **Navigation**: Full Arabic navigation bar with 6 menu items
+- **Navigation**: Full Arabic navigation bar with 7 menu items
 
 ### Phase 4: ZATCA Live Verification (Complete - Jan 27, 2026)
 - **READ-ONLY Verification**: Post-transaction validation of existing invoice data
 - **Scope Documentation**: Clear separation between ERP invoice generation vs. FinAI verification
-- **Verification Checks**:
-  - Mandatory fields (invoice number, UUID, dates, seller/buyer info, totals)
-  - Format validation (VAT number 3XXXXXXXXXXXXX3, UUID format, invoice number length)
-  - Calculation verification (VAT amount, totals, rate 15%)
-  - Business rules (future date check, invoice type/subtype codes)
-  - Hash chain integrity (SHA-256 hash verification)
+- **Verification Checks**: Mandatory fields, format validation, calculation verification, business rules
 - **ZATCA Error Codes**: Full Arabic error messages with regulatory article references
 - **Audit Evidence Storage**: All verifications stored for regulatory audit trail
-- **VAT Number Verification**: Format-only check with regulatory disclaimer
 
-**SCOPE LIMITATION (Critical)**:
-- ✓ Validates existing invoice data
-- ✓ Stores verification results as audit evidence
-- ✗ Does NOT generate invoices
-- ✗ Does NOT submit to ZATCA
-- ✗ Does NOT sign invoices
-- ✗ Does NOT act on behalf of taxpayers
+### Phase 5: Arabic PDF Reports (Complete - Jan 27, 2026)
+- **PDF Generation**: ReportLab-based PDF generation with Arabic support
+- **Arabic Text Shaping**: Using arabic-reshaper and python-bidi for proper RTL text
+- **Report Content**: Executive summary, compliance scores, audit findings, recommendations
+- **Download Endpoint**: `/report/pdf/` endpoint for on-demand PDF generation
+- **File Size**: ~47KB properly formatted PDF
+
+### Phase 6: Document Ingestion with OCR (Complete - Jan 27, 2026)
+- **Tesseract OCR**: Installed tesseract-ocr 5.3.0 with Arabic (ara) and English (eng) support
+- **Document Upload**: Support for PDF, JPG, PNG, TIFF, BMP files (max 50MB)
+- **OCR Processing**: Extract text from documents with confidence scoring
+- **OCREvidence Model**: Store extracted text as immutable audit evidence with SHA-256 hash
+- **Structured Data Extraction**: Best-effort extraction of invoice numbers, VAT numbers, amounts
+- **Handwriting Support**: Toggle for handwritten document processing
+- **Processing Metrics**: Confidence score, word count, page count, processing time
 
 ---
 
@@ -83,13 +87,15 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 ### Backend (Django)
 ```
 /app/backend/
-├── config/          # Settings, URLs
+├── config/          # Settings, URLs (LOGIN_URL='/login/', ALLOWED_HOSTS=['*'])
 ├── core/            # User, Organization, Web Views
-├── documents/       # Document, Transaction, Account, JournalEntry models
+│   └── web_views.py # All page views including document_upload_view, ocr_evidence_*
+├── documents/       # Document, Transaction, Account, JournalEntry, OCREvidence models
+│   └── ocr_service.py # DocumentOCRService using Tesseract
 ├── reports/         # Report, Insight models
+│   └── pdf_generator.py # ArabicPDFGenerator using ReportLab
 ├── compliance/      # ZATCA, VAT, Zakat, AuditFinding models
-│   ├── zatca_live_verification.py  # NEW: ZATCA Live Verification Service
-│   └── models.py                   # NEW: ZATCALiveVerificationReport model
+│   └── zatca_live_verification.py # ZATCA Live Verification Service
 ├── templates/       # Django Templates (Arabic RTL)
 │   ├── base.html
 │   ├── login.html
@@ -98,7 +104,8 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 │   ├── findings/list.html, detail.html
 │   ├── transactions.html, transactions_detail.html
 │   ├── accounts/list.html, detail.html
-│   └── reports/arabic_report.html
+│   ├── reports/arabic_report.html
+│   └── documents/upload.html, ocr_list.html, ocr_detail.html  # NEW
 └── db.sqlite3
 ```
 
@@ -113,7 +120,11 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 - `/transactions/<id>/` - Transaction detail
 - `/accounts/` - Accounts list
 - `/accounts/<id>/` - Account detail
-- `/report/arabic/` - Arabic audit report
+- `/report/arabic/` - Arabic audit report (web view)
+- `/report/pdf/` - Arabic audit report (PDF download)
+- `/documents/upload/` - Document upload for OCR (NEW)
+- `/ocr/` - OCR evidence list (NEW)
+- `/ocr/<id>/` - OCR evidence detail (NEW)
 
 ### Proxy Configuration
 - Nginx on port 3000 proxies to Django on port 8001
@@ -124,7 +135,7 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 ## 4. Test Credentials
 
 - **Email**: admin@finai.com
-- **Password**: admin123
+- **Password**: adminpassword
 - **Organization**: FinAI Demo Company
 
 ---
@@ -138,26 +149,28 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 - 1 VAT reconciliation
 - 1 Zakat calculation
 - Regulatory references
+- 2 OCR evidence records (from testing)
 
 ---
 
-## 6. Upcoming/Future Tasks (P1/P2)
+## 6. Upcoming/Future Tasks
 
 ### P1 - High Priority
-1. **Full ZATCA API Integration**: Connect to live ZATCA API for invoice reporting/clearing
-2. **LLM Integration**: Dynamic AI explanations for audit findings using Emergent LLM Key
-3. **Transaction Detail Drill-Down**: Link audit findings to specific transactions
+1. **LLM Integration**: Dynamic AI explanations for audit findings using Emergent LLM Key
+   - File: `/app/backend/compliance/services.py`
+   - Replace static `ai_explanation_ar` with live LLM-generated Arabic explanations
+   - **WAITING FOR USER AUTHORIZATION**
 
 ### P2 - Medium Priority
 1. **Database Migration**: Move from SQLite to PostgreSQL for production
-2. **PDF Report Generation**: Export Arabic audit reports as PDF
-3. **Dashboard Charts**: Add trend charts for income/expense over time
-4. **Multi-Language Toggle**: Add English translation option
+2. **Dashboard Charts**: Add trend charts for income/expense over time
+3. **Multi-Language Toggle**: Add English translation option
+4. **Refactoring**: Split `web_views.py` into smaller focused files per app
 
 ### P3 - Future
-1. **Document Upload**: Full document processing workflow
-2. **Email Notifications**: Alert users of critical findings
-3. **Role-Based Access**: Granular permissions by user role
+1. **Email Notifications**: Alert users of critical findings
+2. **Role-Based Access**: Granular permissions by user role
+3. **Full ZATCA API Integration**: Connect to live ZATCA API for invoice reporting/clearing
 
 ---
 
@@ -166,6 +179,7 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 - `/app/test_reports/iteration_1.json` - Backend API tests (passed)
 - `/app/test_reports/iteration_2.json` - Backend quality gate (passed)
 - `/app/test_reports/iteration_3.json` - Frontend tests (28/28 passed, 100%)
+- `/app/test_reports/iteration_4.json` - Frontend tests (10/10 passed, 100%) - Jan 27, 2026
 
 ---
 
@@ -175,3 +189,40 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 - **Data-Rich**: Tables over cards, high information density
 - **Minimal**: Minimal colors and animations, regulator-friendly
 - **Auditor-Focused**: Conservative, professional design for compliance officers
+
+---
+
+## 9. Dependencies Installed
+
+### Python (Backend)
+- Django 5.0+
+- django-rest-framework
+- reportlab (PDF generation)
+- arabic-reshaper, python-bidi (Arabic text shaping)
+- pytesseract (OCR interface)
+- pdf2image (PDF to image conversion for OCR)
+- Pillow (Image processing)
+
+### System
+- tesseract-ocr 5.3.0 with ara (Arabic) and eng (English) language packs
+
+---
+
+## 10. Known Limitations
+
+### MOCKED Features
+- **AI Explanations**: The `ai_explanation_ar` field in AuditFinding model contains static seeded data, NOT live LLM-generated content. LLM integration is a P1 task pending user authorization.
+
+### ZATCA Scope Limitation
+- ✓ Validates existing invoice data
+- ✓ Stores verification results as audit evidence
+- ✗ Does NOT generate invoices
+- ✗ Does NOT submit to ZATCA
+- ✗ Does NOT sign invoices
+- ✗ Does NOT act on behalf of taxpayers
+
+### OCR Scope Limitation
+- ✓ Extracts text from documents as audit evidence
+- ✓ Best-effort structured data extraction
+- ✗ Extracted text is NOT source of accounting truth
+- ✗ NOT used for automatic accounting entries
