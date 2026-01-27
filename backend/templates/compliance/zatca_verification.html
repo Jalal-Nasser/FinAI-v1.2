@@ -208,14 +208,14 @@
                     {% for v in recent_verifications %}
                     <tr>
                         <td>{{ v.verification_type }}</td>
-                        <td class="mono text-xs">{{ v.invoice_uuid|truncatechars:20 }}</td>
+                        <td class="mono text-xs">{{ v.input_identifier|truncatechars:20 }}</td>
                         <td>
-                            <span class="badge {% if v.overall_status == 'valid' %}badge-success{% else %}badge-danger{% endif %}">
-                                {{ v.overall_status }}
+                            <span class="badge {% if v.is_valid %}badge-success{% else %}badge-danger{% endif %}">
+                                {% if v.is_valid %}{% if is_arabic %}صالح{% else %}Valid{% endif %}{% else %}{% if is_arabic %}غير صالح{% else %}Invalid{% endif %}{% endif %}
                             </span>
                         </td>
                         <td>{{ v.compliance_score }}%</td>
-                        <td class="mono text-xs">{{ v.verification_timestamp|date:"Y/m/d H:i" }}</td>
+                        <td class="mono text-xs">{{ v.created_at|date:"Y/m/d H:i" }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
