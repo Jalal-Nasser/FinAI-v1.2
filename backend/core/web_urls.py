@@ -6,6 +6,9 @@ urlpatterns = [
     path('login/', web_views.login_view, name='login'),
     path('logout/', web_views.logout_view, name='logout'),
     
+    # Language Toggle
+    path('toggle-language/', web_views.toggle_language_view, name='toggle_language'),
+    
     # Dashboard
     path('', web_views.dashboard_view, name='dashboard'),
     
