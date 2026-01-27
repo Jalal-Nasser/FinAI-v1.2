@@ -66,6 +66,7 @@
                             <a href="{% url 'audit_findings_list' %}" class="px-3 py-1.5 rounded {% if 'findings' in request.path %}bg-slate-700{% else %}hover:bg-slate-700{% endif %}">نتائج التدقيق</a>
                             <a href="{% url 'transactions' %}" class="px-3 py-1.5 rounded {% if 'transactions' in request.path %}bg-slate-700{% else %}hover:bg-slate-700{% endif %}">المعاملات</a>
                             <a href="{% url 'accounts_list' %}" class="px-3 py-1.5 rounded {% if 'accounts' in request.path %}bg-slate-700{% else %}hover:bg-slate-700{% endif %}">الحسابات</a>
+                            <a href="{% url 'document_upload' %}" class="px-3 py-1.5 rounded {% if 'upload' in request.path or 'ocr' in request.path %}bg-slate-700{% else %}hover:bg-slate-700{% endif %}">المستندات</a>
                             <a href="{% url 'arabic_report' %}" class="px-3 py-1.5 rounded {% if 'report' in request.path %}bg-slate-700{% else %}hover:bg-slate-700{% endif %}">التقارير</a>
                         </div>
                     </div>
