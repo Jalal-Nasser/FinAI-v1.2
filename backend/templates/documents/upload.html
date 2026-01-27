@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}رفع المستندات - FinAI{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h1 class="text-xl font-bold text-slate-800">رفع المستندات</h1>
+            <p class="text-sm text-slate-500">رفع مستند للتعرف الضوئي على النص (OCR)</p>
+        </div>
+    </div>
+
+    <!-- Scope Notice -->
+    <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
+        <h3 class="font-semibold text-blue-800 mb-2">ملاحظة مهمة - نطاق النظام</h3>
+        <p class="text-sm text-blue-700">
+            النص المستخرج من المستندات يُستخدم كـ <strong>دليل تدقيق فقط</strong> وليس كمصدر للحقيقة المحاسبية.
+            لا يتم تعديل النص المستخرج ويتم تخزينه مع بصمة رقمية للتحقق من سلامته.
+        </p>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="bg-white border border-slate-200 rounded mb-6">
+        <div class="px-4 py-3 border-b border-slate-200">
+            <h2 class="font-semibold text-slate-700">رفع مستند جديد</h2>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="p-4 space-y-4">
+            {% csrf_token %}
+            
+            <!-- File Upload -->
+            <div>
+                <label class="block text-sm font-medium text-slate-600 mb-2">اختر الملف</label>
+                <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-slate-400 transition-colors">
+                    <input type="file" name="document" id="document" accept=".pdf,.jpg,.jpeg,.png,.tiff,.bmp" required
+                        data-testid="document-file-input"
+                        class="hidden" onchange="updateFileName(this)">
+                    <label for="document" class="cursor-pointer">
+                        <div class="text-4xl mb-2">📄</div>
+                        <p class="text-sm text-slate-600 mb-1" id="file-name-display">اضغط لاختيار ملف أو اسحب الملف هنا</p>
+                        <p class="text-xs text-slate-400">PDF, JPG, PNG, TIFF, BMP (الحد الأقصى: 10 ميجابايت)</p>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Document Type -->
+                <div>
+                    <label for="document_type" class="block text-sm font-medium text-slate-600 mb-1">نوع المستند</label>
+                    <select name="document_type" id="document_type" 
+                        data-testid="document-type-select"
+                        class="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-slate-500">
+                        {% for value, label in document_types %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Language -->
+                <div>
+                    <label for="language" class="block text-sm font-medium text-slate-600 mb-1">لغة المستند</label>
+                    <select name="language" id="language"
+                        data-testid="language-select"
+                        class="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-slate-500">
+                        <option value="mixed">عربي وإنجليزي</option>
+                        <option value="ar">عربي فقط</option>
+                        <option value="en">إنجليزي فقط</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Handwritten Option -->
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="is_handwritten" id="is_handwritten"
+                    data-testid="handwritten-checkbox"
+                    class="w-4 h-4 text-slate-600 border-slate-300 rounded focus:ring-slate-500">
+                <label for="is_handwritten" class="text-sm text-slate-600">المستند يحتوي على خط يدوي</label>
+            </div>
+            
+            <!-- Submit Button -->
+            <div class="pt-4 border-t border-slate-200">
+                <button type="submit" 
+                    data-testid="upload-submit-btn"
+                    class="w-full py-3 bg-slate-800 text-white text-sm font-medium rounded hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">
+                    رفع ومعالجة المستند
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Recent Documents -->
+    <div class="bg-white border border-slate-200 rounded">
+        <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+            <h2 class="font-semibold text-slate-700">المستندات الأخيرة</h2>
+            <a href="{% url 'ocr_evidence_list' %}" class="text-xs text-slate-500 hover:text-slate-700">عرض الكل</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full data-table" data-testid="recent-documents-table">
+                <thead>
+                    <tr>
+                        <th class="text-right">الملف</th>
+                        <th class="text-right">النوع</th>
+                        <th class="text-right">الحالة</th>
+                        <th class="text-right">التاريخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in recent_documents %}
+                    <tr>
+                        <td class="text-slate-700">{{ doc.file_name|truncatechars:30 }}</td>
+                        <td class="text-slate-500">{{ doc.get_document_type_display }}</td>
+                        <td>
+                            <span class="badge {% if doc.status == 'completed' %}badge-success{% elif doc.status == 'processing' %}badge-warning{% elif doc.status == 'failed' %}badge-danger{% else %}badge-neutral{% endif %}">
+                                {% if doc.status == 'completed' %}مكتمل{% elif doc.status == 'processing' %}قيد المعالجة{% elif doc.status == 'failed' %}فشل{% else %}معلق{% endif %}
+                            </span>
+                        </td>
+                        <td class="mono text-slate-500">{{ doc.uploaded_at|date:"Y/m/d H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-8 text-slate-400">لا توجد مستندات مرفوعة</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateFileName(input) {
+    const display = document.getElementById('file-name-display');
+    if (input.files && input.files[0]) {
+        display.textContent = input.files[0].name;
+        display.classList.add('text-slate-800', 'font-medium');
+    }
+}
+</script>
+{% endblock %}
