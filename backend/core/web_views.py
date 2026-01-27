@@ -622,3 +622,211 @@ def download_pdf_report_view(request):
         logger.error(f"PDF generation error: {e}")
         messages.error(request, f'خطأ في إنشاء التقرير: {str(e)}')
         return redirect('arabic_report')
+
+
+
+@login_required
+def document_upload_view(request):
+    """
+    رفع المستندات للتعرف الضوئي
+    Document Upload for OCR Processing
+    
+    READ-ONLY FLOW: Upload → OCR → Store as Evidence
+    """
+    from documents.models import Document, OCREvidence
+    from documents.ocr_service import document_ocr_service
+    import os
+    import tempfile
+    
+    user = request.user
+    organization = user.organization
+    
+    if not organization:
+        messages.error(request, 'لا توجد منشأة مرتبطة بالحساب')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        uploaded_file = request.FILES.get('document')
+        
+        if not uploaded_file:
+            messages.error(request, 'الرجاء اختيار ملف للرفع')
+            return redirect('document_upload')
+        
+        # Validate file type
+        file_ext = os.path.splitext(uploaded_file.name)[1].lower()
+        allowed_types = ['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.bmp']
+        
+        if file_ext not in allowed_types:
+            messages.error(request, f'نوع الملف غير مدعوم. الأنواع المدعومة: {", ".join(allowed_types)}')
+            return redirect('document_upload')
+        
+        # Get form data
+        document_type = request.POST.get('document_type', 'other')
+        language = request.POST.get('language', 'mixed')
+        is_handwritten = request.POST.get('is_handwritten') == 'on'
+        
+        try:
+            # Save uploaded file temporarily
+            with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
+                for chunk in uploaded_file.chunks():
+                    tmp_file.write(chunk)
+                tmp_path = tmp_file.name
+            
+            # Create document record
+            upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads', str(organization.id))
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            storage_key = f"{timezone.now().strftime('%Y%m%d_%H%M%S')}_{uploaded_file.name}"
+            storage_path = os.path.join(upload_dir, storage_key)
+            
+            # Copy to permanent storage
+            import shutil
+            shutil.copy(tmp_path, storage_path)
+            
+            document = Document.objects.create(
+                organization=organization,
+                uploaded_by=user,
+                file_name=uploaded_file.name,
+                file_type=file_ext,
+                file_size=uploaded_file.size,
+                storage_key=storage_key,
+                storage_url=storage_path,
+                document_type=document_type,
+                status='processing',
+                language=language,
+                is_handwritten=is_handwritten,
+            )
+            
+            # Process OCR
+            ocr_result = document_ocr_service.process_document(
+                file_path=tmp_path,
+                file_type=file_ext,
+                language=language,
+                is_handwritten=is_handwritten,
+            )
+            
+            # Extract structured data
+            structured = document_ocr_service.extract_structured_data(
+                ocr_result.get('text', ''),
+                document_type
+            )
+            
+            # Determine confidence level
+            confidence = ocr_result.get('confidence', 0)
+            if confidence >= 80:
+                confidence_level = 'high'
+            elif confidence >= 60:
+                confidence_level = 'medium'
+            elif confidence >= 40:
+                confidence_level = 'low'
+            else:
+                confidence_level = 'very_low'
+            
+            # Create OCR evidence record
+            ocr_evidence = OCREvidence.objects.create(
+                document=document,
+                organization=organization,
+                raw_text=ocr_result.get('text', ''),
+                text_ar=ocr_result.get('text_ar', ''),
+                text_en=ocr_result.get('text_en', ''),
+                confidence_score=confidence,
+                confidence_level=confidence_level,
+                page_count=ocr_result.get('page_count', 1),
+                word_count=len(ocr_result.get('text', '').split()),
+                ocr_engine=ocr_result.get('ocr_engine', 'tesseract'),
+                ocr_version=ocr_result.get('ocr_version', ''),
+                language_used=language,
+                is_handwritten=is_handwritten,
+                processing_time_ms=ocr_result.get('processing_time_ms', 0),
+                extracted_invoice_number=structured.get('invoice_number'),
+                extracted_vat_number=structured.get('vat_number'),
+                extracted_total=structured.get('total_amount'),
+                extracted_tax=structured.get('tax_amount'),
+                structured_data_json=structured,
+                evidence_hash=ocr_result.get('evidence_hash', ''),
+                extracted_by=user,
+            )
+            
+            # Update document status
+            document.status = 'completed'
+            document.processed_at = timezone.now()
+            document.save()
+            
+            # Clean up temp file
+            os.unlink(tmp_path)
+            
+            messages.success(request, f'تم معالجة المستند بنجاح. درجة الثقة: {confidence}%')
+            return redirect('ocr_evidence_detail', evidence_id=ocr_evidence.id)
+            
+        except Exception as e:
+            logger.error(f"Document upload error: {e}")
+            messages.error(request, f'خطأ في معالجة المستند: {str(e)}')
+            return redirect('document_upload')
+    
+    # GET: Show upload form
+    recent_docs = Document.objects.filter(organization=organization).order_by('-uploaded_at')[:10]
+    
+    context = {
+        'recent_documents': recent_docs,
+        'document_types': Document.DOCUMENT_TYPE_CHOICES,
+        'language_choices': Document.LANGUAGE_CHOICES,
+    }
+    
+    return render(request, 'documents/upload.html', context)
+
+
+@login_required
+def ocr_evidence_list_view(request):
+    """
+    قائمة أدلة التعرف الضوئي
+    List OCR Evidence Records
+    """
+    from documents.models import OCREvidence
+    
+    user = request.user
+    organization = user.organization
+    
+    if not organization:
+        return render(request, 'no_organization.html')
+    
+    evidence_records = OCREvidence.objects.filter(organization=organization)
+    
+    # Apply filters
+    confidence = request.GET.get('confidence')
+    if confidence:
+        evidence_records = evidence_records.filter(confidence_level=confidence)
+    
+    evidence_records = evidence_records.order_by('-extracted_at')
+    
+    # Pagination
+    paginator = Paginator(evidence_records, 20)
+    page_number = request.GET.get('page')
+    evidence_page = paginator.get_page(page_number)
+    
+    context = {
+        'evidence_records': evidence_page,
+        'total_count': OCREvidence.objects.filter(organization=organization).count(),
+    }
+    
+    return render(request, 'documents/ocr_list.html', context)
+
+
+@login_required
+def ocr_evidence_detail_view(request, evidence_id):
+    """
+    تفاصيل دليل التعرف الضوئي
+    OCR Evidence Detail View
+    """
+    from documents.models import OCREvidence
+    
+    user = request.user
+    organization = user.organization
+    
+    evidence = get_object_or_404(OCREvidence, id=evidence_id, organization=organization)
+    
+    context = {
+        'evidence': evidence,
+        'scope_docs': OCREvidence.get_scope_documentation(),
+    }
+    
+    return render(request, 'documents/ocr_detail.html', context)
