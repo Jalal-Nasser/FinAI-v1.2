@@ -134,28 +134,109 @@
             </div>
         </div>
 
-        <!-- AI Explanation History -->
+        <!-- AI Explanation Review Workflow -->
         {% if ai_explanation_logs %}
         <div class="bg-white border border-slate-200 rounded">
             <div class="px-4 py-3 border-b border-slate-200">
-                <h2 class="font-semibold text-slate-700">سجل الشروحات الذكية</h2>
-                <p class="text-xs text-slate-500 mt-1">جميع الشروحات استشارية فقط وتتطلب مراجعة بشرية</p>
+                <h2 class="font-semibold text-slate-700">سجل الشروحات الذكية ومراجعتها</h2>
+                <p class="text-xs text-slate-500 mt-1">جميع الشروحات استشارية فقط - يجب مراجعتها واعتمادها قبل أي إجراء</p>
             </div>
             <div class="divide-y divide-slate-100">
                 {% for log in ai_explanation_logs %}
-                <div class="p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="badge {% if log.approval_status == 'approved' %}badge-success{% elif log.approval_status == 'rejected' %}badge-danger{% else %}badge-warning{% endif %}">
-                            {{ log.get_approval_status_display }}
-                        </span>
+                <div class="p-4" data-testid="ai-log-{{ log.id }}">
+                    <!-- Log Header with Status -->
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="badge {% if log.approval_status == 'approved' %}badge-success{% elif log.approval_status == 'rejected' %}badge-danger{% elif log.approval_status == 'modified' %}badge-info{% else %}badge-warning{% endif %}" data-testid="log-status-{{ log.id }}">
+                                {% if log.approval_status == 'approved' %}✓ معتمد{% elif log.approval_status == 'rejected' %}✗ مرفوض{% elif log.approval_status == 'modified' %}✎ معدّل{% else %}⏳ قيد المراجعة{% endif %}
+                            </span>
+                            {% if log.human_reviewed %}
+                            <span class="text-xs text-slate-500">راجعه: {{ log.reviewed_by.email|default:'—' }} | {{ log.reviewed_at|date:"Y/m/d H:i" }}</span>
+                            {% endif %}
+                        </div>
                         <span class="text-xs text-slate-400 mono">{{ log.generated_at|date:"Y/m/d H:i" }}</span>
                     </div>
-                    <div class="text-sm text-slate-600 leading-relaxed line-clamp-3">{{ log.explanation_ar|truncatechars:300 }}</div>
-                    <div class="mt-2 text-xs text-slate-400 flex items-center gap-3">
-                        <span>الموديل: {{ log.model_used }}</span>
-                        <span>الثقة: {{ log.confidence_score }}%</span>
-                        <span>وقت المعالجة: {{ log.processing_time_ms }}ms</span>
+                    
+                    <!-- Explanation Content -->
+                    <div class="text-sm text-slate-700 leading-relaxed mb-3 p-3 bg-slate-50 rounded">{{ log.explanation_ar|truncatechars:500 }}</div>
+                    
+                    <!-- Metadata -->
+                    <div class="flex items-center justify-between text-xs text-slate-400 mb-3">
+                        <div class="flex items-center gap-3">
+                            <span>الموديل: {{ log.model_used }}</span>
+                            <span>الثقة: {{ log.confidence_score }}%</span>
+                            <span>المعالجة: {{ log.processing_time_ms }}ms</span>
+                        </div>
+                        <span class="mono text-slate-300" title="Audit Hash">{{ log.audit_hash }}</span>
                     </div>
+                    
+                    <!-- Review Actions (only for pending) -->
+                    {% if log.approval_status == 'pending' %}
+                    <div class="pt-3 border-t border-slate-200">
+                        <div class="flex items-center gap-2 mb-3">
+                            <form method="post" action="{% url 'review_ai_explanation' log.id %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="approve">
+                                <button type="submit" 
+                                        data-testid="approve-btn-{{ log.id }}"
+                                        class="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors">
+                                    ✓ اعتماد
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'review_ai_explanation' log.id %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" 
+                                        data-testid="reject-btn-{{ log.id }}"
+                                        class="px-3 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors">
+                                    ✗ رفض
+                                </button>
+                            </form>
+                            <button type="button" 
+                                    onclick="toggleModifyForm('{{ log.id }}')"
+                                    data-testid="modify-btn-{{ log.id }}"
+                                    class="px-3 py-1.5 bg-slate-600 text-white text-xs rounded hover:bg-slate-700 transition-colors">
+                                ✎ تعديل
+                            </button>
+                        </div>
+                        
+                        <!-- Modify Form (hidden by default) -->
+                        <div id="modify-form-{{ log.id }}" class="hidden mt-3 p-3 bg-slate-50 rounded">
+                            <form method="post" action="{% url 'review_ai_explanation' log.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="modify">
+                                <label class="block text-sm text-slate-600 mb-2">تعديل الشرح:</label>
+                                <textarea name="modified_text" 
+                                          rows="4" 
+                                          data-testid="modify-textarea-{{ log.id }}"
+                                          class="w-full px-3 py-2 border border-slate-300 rounded text-sm mb-2"
+                                          required>{{ log.explanation_ar }}</textarea>
+                                <label class="block text-sm text-slate-600 mb-2">ملاحظات المراجعة:</label>
+                                <input type="text" 
+                                       name="review_notes" 
+                                       placeholder="سبب التعديل..."
+                                       data-testid="modify-notes-{{ log.id }}"
+                                       class="w-full px-3 py-2 border border-slate-300 rounded text-sm mb-2">
+                                <div class="flex items-center gap-2">
+                                    <button type="submit" 
+                                            data-testid="save-modify-btn-{{ log.id }}"
+                                            class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                                        حفظ التعديل
+                                    </button>
+                                    <button type="button" 
+                                            onclick="toggleModifyForm('{{ log.id }}')"
+                                            class="px-3 py-1.5 bg-slate-200 text-slate-700 text-xs rounded hover:bg-slate-300">
+                                        إلغاء
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% elif log.review_notes %}
+                    <div class="pt-3 border-t border-slate-200 text-sm text-slate-500">
+                        <span class="font-medium">ملاحظات المراجعة:</span> {{ log.review_notes }}
+                    </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
