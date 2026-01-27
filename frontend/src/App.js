@@ -1,53 +1,155 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+/**
+ * FinAI - AI-Powered Financial Audit Platform
+ * منصة التدقيق المالي الذكية
+ * 
+ * Arabic-first (RTL) Auditor Dashboard
+ */
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Layout
+import { RTLLayout, AuthProvider, useAuth } from './components/layout/RTLLayout';
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+// Pages
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import FindingsPage from './pages/FindingsPage';
+import VATPage from './pages/VATPage';
+import ZakatPage from './pages/ZakatPage';
+import InvoicesPage from './pages/InvoicesPage';
+import ReportsPage from './pages/ReportsPage';
+import OrganizationsPage from './pages/OrganizationsPage';
 
+// Hooks
+import { useOrganizations } from './lib/hooks';
+
+// Styles
+import './index.css';
+
+// Create React Query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000, // 30 seconds
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+// Protected Route wrapper
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('finai_token');
+  
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
+
+// Main App Content with organization context
+const AppContent = () => {
+  const [currentOrg, setCurrentOrg] = useState(null);
+  const { data: orgsData } = useOrganizations();
+
+  // Set default organization
   useEffect(() => {
-    helloWorldApi();
-  }, []);
+    if (orgsData?.results?.length > 0 && !currentOrg) {
+      // Default to first Saudi org or first available
+      const saudiOrg = orgsData.results.find(o => o.country === 'SA');
+      setCurrentOrg(saudiOrg || orgsData.results[0]);
+    }
+  }, [orgsData, currentOrg]);
+
+  const organizations = orgsData?.results || [];
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
+    <RTLLayout 
+      organizations={organizations}
+      currentOrg={currentOrg}
+      onOrgChange={setCurrentOrg}
+    >
+      <Routes>
+        <Route 
+          path="/" 
+          element={<DashboardPage organizationId={currentOrg?.id} />} 
+        />
+        <Route 
+          path="/findings" 
+          element={<FindingsPage organizationId={currentOrg?.id} />} 
+        />
+        <Route 
+          path="/vat" 
+          element={<VATPage organizationId={currentOrg?.id} />} 
+        />
+        <Route 
+          path="/zakat" 
+          element={<ZakatPage organizationId={currentOrg?.id} />} 
+        />
+        <Route 
+          path="/invoices" 
+          element={<InvoicesPage organizationId={currentOrg?.id} />} 
+        />
+        <Route 
+          path="/reports" 
+          element={<ReportsPage organizationId={currentOrg?.id} />} 
+        />
+        <Route 
+          path="/organizations" 
+          element={<OrganizationsPage onSelectOrg={setCurrentOrg} />} 
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </RTLLayout>
   );
 };
 
+// Root App Component
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem('finai_token');
+  });
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('finai_token');
+    localStorage.removeItem('finai_refresh');
+    localStorage.removeItem('finai_user');
+    setIsAuthenticated(false);
+  };
+
   return (
-    <div className="App">
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route 
+              path="/login" 
+              element={
+                isAuthenticated ? (
+                  <Navigate to="/" replace />
+                ) : (
+                  <LoginPage onLogin={handleLogin} />
+                )
+              } 
+            />
+            <Route 
+              path="/*" 
+              element={
+                <ProtectedRoute>
+                  <AppContent />
+                </ProtectedRoute>
+              } 
+            />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
-    </div>
+    </QueryClientProvider>
   );
 }
 
