@@ -29,6 +29,11 @@ urlpatterns = [
     path('report/arabic/', web_views.arabic_report_view, name='arabic_report'),
     path('report/pdf/', web_views.download_pdf_report_view, name='download_pdf_report'),
     
+    # Document OCR
+    path('documents/upload/', web_views.document_upload_view, name='document_upload'),
+    path('ocr/', web_views.ocr_evidence_list_view, name='ocr_evidence_list'),
+    path('ocr/<uuid:evidence_id>/', web_views.ocr_evidence_detail_view, name='ocr_evidence_detail'),
+    
     # Legacy views
     path('documents/', web_views.documents_view, name='documents'),
     path('analytics/', web_views.analytics_dashboard_view, name='analytics_dashboard'),
