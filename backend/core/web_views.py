@@ -901,6 +901,24 @@ def ocr_evidence_list_view(request):
     return render(request, 'documents/ocr_list.html', context)
 
 
+@require_POST
+def toggle_language_view(request):
+    """
+    Toggle between Arabic and English UI language.
+    
+    NOTE: This is UI-level only. Audit logic remains unchanged.
+    Arabic is the primary language.
+    """
+    current_lang = request.session.get('language', 'ar')
+    new_lang = 'en' if current_lang == 'ar' else 'ar'
+    request.session['language'] = new_lang
+    
+    # Get the referring page or default to dashboard
+    referer = request.META.get('HTTP_REFERER', '/')
+    return redirect(referer)
+
+
+
 @login_required
 def ocr_evidence_detail_view(request, evidence_id):
     """
