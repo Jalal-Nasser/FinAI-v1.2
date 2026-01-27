@@ -185,32 +185,24 @@ GET  /api/compliance/audit-findings/generate_report_ar/
 
 ---
 
-## 5. Prioritized Backlog
+## 6. Prioritized Backlog
 
 ### P0 - Critical (Next Sprint)
-- [ ] Frontend React dashboard
-- [ ] Document upload UI
-- [ ] Transaction list with filters
+- [ ] React frontend dashboard (Arabic-first, RTL)
+- [ ] Compliance score widgets
 - [ ] Audit flag resolution UI
+- [ ] Arabic report viewer/export
 
 ### P1 - High Priority
-- [ ] ZATCA e-invoicing integration
+- [ ] Live ZATCA API integration (Phase 3)
 - [ ] Automated VAT return generation
-- [ ] Shariah compliance rules engine
 - [ ] Email notifications for critical flags
+- [ ] Shariah compliance rules
 
 ### P2 - Medium Priority
-- [ ] Balance sheet report generation
-- [ ] Cash flow statement report
+- [ ] Balance sheet report
 - [ ] Currency conversion service
-- [ ] Bulk transaction import (CSV/Excel)
-
-### P3 - Nice to Have
-- [ ] Mobile responsive design
-- [ ] Real-time WebSocket updates
-- [ ] Multi-language UI (Arabic/English)
-- [ ] API rate limiting
-- [ ] Advanced role-based permissions
+- [ ] Bulk transaction import
 
 ---
 
