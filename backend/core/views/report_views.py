@@ -71,16 +71,73 @@ def download_pdf_report_view(request):
     تحميل تقرير PDF بالعربية
     Download Arabic PDF Audit Report
     """
+    from datetime import date, timedelta
+    
     user = request.user
     organization = user.organization
     
     try:
+        # Get all data for report
+        findings = AuditFinding.objects.filter(organization=organization)
+        zatca_invoices = ZATCAInvoice.objects.filter(organization=organization)
+        vat_reconciliations = VATReconciliation.objects.filter(organization=organization)
+        zakat_calcs = ZakatCalculation.objects.filter(organization=organization)
+        
+        # Calculate scores
+        zatca_valid = zatca_invoices.filter(status__in=['validated', 'cleared']).count()
+        zatca_score = int((zatca_valid / max(zatca_invoices.count(), 1)) * 100) if zatca_invoices.exists() else 100
+        
+        vat_score = vat_reconciliations.aggregate(avg=Sum('compliance_score'))['avg']
+        vat_score = int(vat_score / max(vat_reconciliations.count(), 1)) if vat_score else 100
+        
+        zakat_score = zakat_calcs.aggregate(avg=Sum('compliance_score'))['avg']
+        zakat_score = int(zakat_score / max(zakat_calcs.count(), 1)) if zakat_score else 100
+        
+        overall_score = int((zatca_score + vat_score + zakat_score) / 3)
+        
+        # Prepare data for PDF generator
+        organization_data = {
+            'name': organization.name,
+            'name_ar': organization.name_ar or organization.name,
+            'vat_number': organization.vat_number or 'غير متوفر',
+            'country': organization.country,
+        }
+        
+        compliance_data = {
+            'overall_score': overall_score,
+            'zatca_score': zatca_score,
+            'vat_score': vat_score,
+            'zakat_score': zakat_score,
+        }
+        
+        findings_data = [
+            {
+                'finding_number': f.finding_number,
+                'title_ar': f.title_ar,
+                'risk_level': f.risk_level,
+                'description_ar': f.description_ar,
+                'recommendation_ar': f.recommendation_ar,
+            }
+            for f in findings
+        ]
+        
+        period_end = date.today()
+        period_start = period_end - timedelta(days=365)
+        
         # Generate PDF
-        pdf_buffer = arabic_pdf_generator.generate_audit_report(organization)
+        pdf_buffer = arabic_pdf_generator.generate_report(
+            organization_data=organization_data,
+            compliance_data=compliance_data,
+            findings_data=findings_data,
+            period_start=period_start,
+            period_end=period_end,
+            generated_by=user.email
+        )
         
         # Create response
         response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="audit_report_{organization.name}.pdf"'
+        filename = f'audit_report_{organization.name.replace(" ", "_")}_{period_end.strftime("%Y%m%d")}.pdf'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
         return response
         
