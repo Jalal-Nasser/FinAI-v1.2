@@ -1,13 +1,22 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.http import HttpResponse
 from django.utils import timezone
 from django.db.models import Sum
+from datetime import datetime, timedelta
+from decimal import Decimal
+import logging
+
 from .models import Report, Insight
 from .serializers import ReportSerializer, InsightSerializer
+from .pdf_generator import arabic_pdf_generator
 from documents.models import Transaction
-from datetime import datetime
-from decimal import Decimal
+from compliance.models import (
+    AuditFinding, ZATCAInvoice, VATReconciliation, ZakatCalculation
+)
+
+logger = logging.getLogger(__name__)
 
 class ReportViewSet(viewsets.ModelViewSet):
     queryset = Report.objects.all()
