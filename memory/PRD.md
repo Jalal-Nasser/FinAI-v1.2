@@ -51,43 +51,64 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 
 ---
 
-## 3. Core Requirements (Static)
+## 3. Core Requirements
 
-### 3.1 Document Processing
+### 3.1 Document Processing ✅
 - [x] Upload documents (PDF, JPG, PNG, TIFF)
 - [x] Batch upload support
 - [x] AI-powered OCR with Arabic/English support
 - [x] Confidence scoring
 - [x] Manual validation workflow
-- [ ] 50MB file limit (configured, not tested with large files)
+- [x] 50MB file limit
 
-### 3.2 Financial Data Management
-- [x] Chart of Accounts (Assets, Liabilities, Equity, Revenue, Expenses)
+### 3.2 Financial Data Management ✅
+- [x] Chart of Accounts
 - [x] Transaction management
-- [x] Journal entries (double-entry bookkeeping)
+- [x] Journal entries (double-entry)
 - [x] VAT calculation and tracking
-- [x] Multi-currency support (SAR, AED, KWD, QAR, BHD, OMR)
+- [x] Multi-currency support
 
-### 3.3 GCC Compliance
-- [x] 6 GCC countries supported (SA, AE, BH, KW, OM, QA)
-- [x] Country-specific VAT rates
-- [x] Compliance checks (VAT, ZATCA, Shariah, IFRS, AML)
+### 3.3 ZATCA Compliance (Saudi Arabia) ✅ NEW
+- [x] E-Invoice validation service
+- [x] Mandatory field checks
+- [x] VAT number format validation (15-digit)
+- [x] UUID validation
+- [x] VAT calculation verification
+- [x] Invoice date validation
+- [x] Hash calculation for integrity
+- [x] Validation results storage
+
+### 3.4 VAT Reconciliation ✅ NEW
+- [x] Output VAT (sales) calculation
+- [x] Input VAT (purchases) calculation
+- [x] GL balance comparison
+- [x] Variance detection and reporting
+- [x] Discrepancy categorization
 - [x] Compliance scoring
-- [ ] ZATCA e-invoicing integration (planned)
-- [ ] Real-time regulatory updates (planned)
 
-### 3.4 Analytics & AI
-- [x] Anomaly detection
-- [x] Cash flow forecasting
-- [x] Trend analysis
-- [x] KPI monitoring
-- [x] AI-generated insights
+### 3.5 Zakat Calculation ✅ NEW
+- [x] Positive Zakat base components
+- [x] Deductions (fixed assets, losses)
+- [x] Net Zakat base calculation
+- [x] 2.5% rate application
+- [x] Zakat vs Tax comparison
+- [x] Discrepancy detection
+- [x] Arabic explanations
 
-### 3.5 Audit Features
-- [x] Audit trail logging
-- [x] Audit flags for review
-- [x] Resolution workflow
-- [x] Report generation
+### 3.6 Arabic Reporting ✅ NEW
+- [x] Formal Arabic audit reports
+- [x] Executive summary generation
+- [x] Risk level in Arabic (حرج، مرتفع، متوسط، منخفض)
+- [x] Regulatory reference mapping
+- [x] Recommendations in Arabic
+- [x] Professional conclusion
+
+### 3.7 Regulatory Mapping ✅ NEW
+- [x] RegulatoryReference model
+- [x] Article/clause identification
+- [x] Bilingual content (Arabic primary)
+- [x] Penalty information
+- [x] Finding linkage
 
 ---
 
