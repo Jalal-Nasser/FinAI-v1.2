@@ -912,6 +912,10 @@ def toggle_language_view(request):
     current_lang = request.session.get('language', 'ar')
     new_lang = 'en' if current_lang == 'ar' else 'ar'
     request.session['language'] = new_lang
+    
+    # Get the referring page or default to dashboard
+    referer = request.META.get('HTTP_REFERER', '/')
+    return redirect(referer)
 
 
 @login_required
