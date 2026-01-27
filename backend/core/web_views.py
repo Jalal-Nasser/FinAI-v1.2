@@ -927,7 +927,7 @@ def zatca_verification_view(request):
     SCOPE: VERIFICATION ONLY - No submission, clearance, or signing
     """
     from compliance.zatca_api_service import zatca_api_service
-    from compliance.models import ZATCALiveVerificationReport
+    from compliance.models import ZATCAVerificationLog
     
     user = request.user
     organization = user.organization
@@ -943,15 +943,20 @@ def zatca_verification_view(request):
                 verification_result = zatca_api_service.verify_vat_number(vat_number)
                 
                 # Store as audit evidence
-                ZATCALiveVerificationReport.objects.create(
+                ZATCAVerificationLog.objects.create(
                     organization=organization,
-                    invoice_uuid=verification_result.get('verification_id'),
                     verification_type='vat_number',
-                    overall_status='valid' if verification_result.get('valid') else 'invalid',
+                    input_identifier=vat_number,
+                    is_valid=verification_result.get('valid', False),
                     compliance_score=100 if verification_result.get('valid') else 0,
                     passed_checks=1 if verification_result.get('valid') else 0,
                     failed_checks=0 if verification_result.get('valid') else 1,
-                    raw_response_json=verification_result,
+                    message_ar=verification_result.get('message_ar') or verification_result.get('error_message_ar'),
+                    message_en=verification_result.get('message_en'),
+                    error_code=verification_result.get('error_code'),
+                    response_json=verification_result,
+                    processing_time_ms=verification_result.get('processing_time_ms', 0),
+                    audit_hash=verification_result.get('audit_hash', ''),
                     verified_by=user,
                 )
                 
@@ -971,15 +976,19 @@ def zatca_verification_view(request):
                 )
                 
                 # Store as audit evidence
-                ZATCALiveVerificationReport.objects.create(
+                ZATCAVerificationLog.objects.create(
                     organization=organization,
-                    invoice_uuid=invoice_uuid,
                     verification_type='invoice_structure',
-                    overall_status='valid' if verification_result.get('valid') else 'invalid',
+                    input_identifier=invoice_uuid,
+                    is_valid=verification_result.get('valid', False),
                     compliance_score=verification_result.get('compliance_score', 0),
                     passed_checks=verification_result.get('passed_count', 0),
                     failed_checks=verification_result.get('failed_count', 0),
-                    raw_response_json=verification_result,
+                    message_ar=verification_result.get('message_ar'),
+                    message_en=verification_result.get('message_en'),
+                    response_json=verification_result,
+                    processing_time_ms=verification_result.get('processing_time_ms', 0),
+                    audit_hash=verification_result.get('audit_hash', ''),
                     verified_by=user,
                 )
                 
@@ -989,9 +998,9 @@ def zatca_verification_view(request):
                     messages.error(request, verification_result.get('message_ar', 'فشل التحقق'))
     
     # Get recent verifications
-    recent_verifications = ZATCALiveVerificationReport.objects.filter(
+    recent_verifications = ZATCAVerificationLog.objects.filter(
         organization=organization
-    ).order_by('-verification_timestamp')[:10]
+    ).order_by('-created_at')[:10]
     
     context = {
         'verification_result': verification_result,
