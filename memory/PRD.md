@@ -94,6 +94,31 @@ Build an AI-Powered Financial Audit Platform (FinAI) targeting the GCC market wi
 - **Compliance**: No automatic scoring changes, all outputs clearly marked as advisory
 - **UI Integration**: "توليد شرح جديد" button on finding detail page
 
+### Phase 8: Multi-language Toggle (Complete - Jan 27, 2026)
+- **Arabic Primary**: Default language with RTL layout
+- **English Secondary**: UI-level translations only
+- **Toggle Button**: "EN" / "عربي" button in navigation bar
+- **Session-Based**: Language preference stored in user session
+- **No Logic Changes**: Audit logic, scoring, and data remain unchanged
+- **Implementation**:
+  - `/app/backend/core/translations.py`: Translation dictionary
+  - `/app/backend/core/context_processors.py`: Template context processor
+  - Updated `base.html` with dynamic lang/dir attributes
+
+### Phase 9: ZATCA API Integration (Complete - Jan 27, 2026)
+- **Verification Mode ONLY**: No submission, clearance, or signing
+- **VAT Number Verification**: Validate Saudi VAT numbers (15 digits, starts/ends with 3)
+- **Invoice Structure Verification**: Validate XML structure without submission
+- **Arabic Error Messages**: Full Arabic error codes with regulatory references
+- **Audit Trail**: ZATCAVerificationLog model stores all verifications
+- **Scope Documentation**: Clear disclaimers about verification-only mode
+- **UI**: Dedicated verification page at `/compliance/zatca-verify/`
+- **NOT Authorized**:
+  - Invoice submission to ZATCA
+  - Invoice clearance
+  - Invoice signing
+  - Acting on behalf of taxpayers
+
 ---
 
 ## 3. Architecture
