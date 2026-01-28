@@ -150,9 +150,13 @@ def process_document_ocr(document, file_path, language, is_handwritten, user, or
         document.status = 'processing'
         document.save()
         
+        # Get file extension for OCR service
+        file_ext = os.path.splitext(file_path)[1].lower()
+        
         # Process with OCR
         ocr_result = document_ocr_service.process_document(
             file_path=file_path,
+            file_type=file_ext,
             language=language,
             is_handwritten=is_handwritten,
         )
