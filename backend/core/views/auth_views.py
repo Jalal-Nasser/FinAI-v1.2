@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib import messages
 from django.db import transaction
+from core.models import User, Organization
 
 
 def login_view(request):
@@ -28,8 +29,6 @@ def login_view(request):
 
 def register_view(request):
     """صفحة تسجيل شركة جديدة"""
-    from accounts.models import User, Organization
-    
     if request.user.is_authenticated:
         return redirect('dashboard')
     
