@@ -4,8 +4,21 @@ from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from config.health_urls import health_check, ready_check
+from django.http import JsonResponse
+
+# Debug endpoint
+def debug_auth(request):
+    return JsonResponse({
+        'authenticated': request.user.is_authenticated,
+        'user': str(request.user),
+        'session_key': request.session.session_key if hasattr(request, 'session') else None,
+        'cookies': list(request.COOKIES.keys()),
+    })
 
 urlpatterns = [
+    # Debug endpoint  
+    path('debug-auth/', debug_auth, name='debug_auth'),
+    
     # Health check endpoints (for Kubernetes)
     path('health', health_check, name='health_check'),
     path('health/', health_check, name='health_check_slash'),
@@ -30,15 +43,3 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
-# Debug endpoint
-from django.http import JsonResponse
-def debug_auth(request):
-    return JsonResponse({
-        'authenticated': request.user.is_authenticated,
-        'user': str(request.user),
-        'session_key': request.session.session_key if hasattr(request, 'session') else None,
-        'cookies': list(request.COOKIES.keys()),
-    })
-
-urlpatterns.insert(0, path('debug-auth/', debug_auth))
