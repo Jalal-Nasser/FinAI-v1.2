@@ -47,17 +47,55 @@
         .inset-inline-start-0 {
             inset-inline-start: 0;
         }
+        [dir="rtl"] .inset-inline-start-0 {
+            right: 0;
+            left: auto;
+        }
+        [dir="ltr"] .inset-inline-start-0 {
+            left: 0;
+            right: auto;
+        }
         .ms-\[280px\] {
             margin-inline-start: 280px;
+        }
+        [dir="rtl"] .ms-\[280px\] {
+            margin-right: 280px;
+            margin-left: 0;
+        }
+        [dir="ltr"] .ms-\[280px\] {
+            margin-left: 280px;
+            margin-right: 0;
         }
         .ps-4 {
             padding-inline-start: 1rem;
         }
+        [dir="rtl"] .ps-4 {
+            padding-right: 1rem;
+            padding-left: 0;
+        }
+        [dir="ltr"] .ps-4 {
+            padding-left: 1rem;
+            padding-right: 0;
+        }
         .border-s {
             border-inline-start-width: 1px;
         }
+        [dir="rtl"] .border-s {
+            border-right-width: 1px;
+            border-left-width: 0;
+        }
+        [dir="ltr"] .border-s {
+            border-left-width: 1px;
+            border-right-width: 0;
+        }
         .text-start {
             text-align: start;
+        }
+        [dir="rtl"] .text-start {
+            text-align: right;
+        }
+        [dir="ltr"] .text-start {
+            text-align: left;
         }
         
         /* Glassmorphism Sidebar */
