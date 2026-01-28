@@ -125,7 +125,7 @@ def download_pdf_report_view(request):
         period_start = period_end - timedelta(days=365)
         
         # Generate PDF
-        pdf_buffer = arabic_pdf_generator.generate_report(
+        pdf_bytes = arabic_pdf_generator.generate_report(
             organization_data=organization_data,
             compliance_data=compliance_data,
             findings_data=findings_data,
@@ -134,8 +134,9 @@ def download_pdf_report_view(request):
             generated_by=user.email
         )
         
-        # Create response
-        response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+        # Create response - handle both bytes and BytesIO
+        pdf_content = pdf_bytes if isinstance(pdf_bytes, bytes) else pdf_bytes.getvalue()
+        response = HttpResponse(pdf_content, content_type='application/pdf')
         filename = f'audit_report_{organization.name.replace(" ", "_")}_{period_end.strftime("%Y%m%d")}.pdf'
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
