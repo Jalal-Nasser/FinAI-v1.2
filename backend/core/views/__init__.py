@@ -140,6 +140,7 @@ from .transaction_views import (
 from .document_views import (
     documents_view,
     document_upload_view,
+    process_pending_documents,
     ocr_evidence_list_view,
     ocr_evidence_detail_view,
 )
