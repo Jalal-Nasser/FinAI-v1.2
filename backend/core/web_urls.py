@@ -13,7 +13,7 @@ from .views import (
     transactions_view, transaction_detail_view,
     accounts_list_view, account_detail_view,
     # Documents
-    documents_view, document_upload_view,
+    documents_view, document_upload_view, process_pending_documents,
     ocr_evidence_list_view, ocr_evidence_detail_view,
     # Reports
     arabic_report_view, download_pdf_report_view,
