@@ -88,6 +88,7 @@ class Organization(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, help_text='اسم الشركة')
     name_ar = models.CharField(max_length=255, null=True, blank=True, help_text='اسم الشركة بالعربية')
+    logo = models.ImageField(upload_to='org_logos/', null=True, blank=True, help_text='شعار الشركة')
     country = models.CharField(max_length=2, choices=COUNTRY_CHOICES, help_text='البلد')
     
     # VAT Fields
