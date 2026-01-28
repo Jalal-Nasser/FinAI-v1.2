@@ -5,88 +5,172 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}FinAI - منصة التدقيق المالي{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --sidebar-width: 260px;
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'sidebar': '#0F172A',
+                        'sidebar-hover': '#1E293B',
+                        'main-bg': '#F8FAFC',
+                        'card-bg': '#FFFFFF',
+                        'primary': '#3B82F6',
+                        'primary-dark': '#2563EB',
+                        'accent': '#8B5CF6',
+                    },
+                    fontFamily: {
+                        'arabic': ['IBM Plex Sans Arabic', 'system-ui', 'sans-serif'],
+                        'mono': ['IBM Plex Mono', 'monospace'],
+                    },
+                    borderRadius: {
+                        'card': '12px',
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px rgba(0, 0, 0, 0.08)',
+                        'card': '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
+                        'card-hover': '0 10px 40px rgba(0, 0, 0, 0.08)',
+                        'glow-red': '0 0 20px rgba(239, 68, 68, 0.15)',
+                        'glow-green': '0 0 12px rgba(34, 197, 94, 0.2)',
+                    }
+                }
+            }
         }
+    </script>
+    <style>
         * { 
-            font-family: {% if is_english %}'Inter'{% else %}'IBM Plex Sans Arabic'{% endif %}, system-ui, sans-serif; 
+            font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; 
+        }
+        
+        /* Glassmorphism Sidebar */
+        .glass-sidebar {
+            background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        
+        /* Glass Card Effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
         }
         
         /* Scrollbar Styling */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
-        /* Data Table - Improved spacing and layout */
+        /* Data Table - Premium styling */
         .data-table { 
             font-size: 0.8125rem; 
-            line-height: 1.375rem;
-            table-layout: fixed;
-            width: 100%;
+            line-height: 1.5rem;
         }
         .data-table th { 
             font-weight: 600; 
-            background-color: #f8fafc; 
-            color: #475569;
+            background-color: #F8FAFC; 
+            color: #64748B;
             text-transform: uppercase;
             font-size: 0.6875rem;
             letter-spacing: 0.05em;
-            white-space: nowrap;
+            padding: 1rem 1rem;
         }
-        .data-table td, .data-table th { 
-            padding: 0.875rem 1rem; 
-            border-bottom: 1px solid #f1f5f9;
+        .data-table td { 
+            padding: 1rem 1rem; 
+            border-bottom: 1px solid #F1F5F9;
             vertical-align: middle;
         }
-        .data-table tbody tr:hover { background-color: #f8fafc; }
-        
-        /* Column width utilities for tables */
-        .col-id { width: 90px; }
-        .col-level { width: 80px; }
-        .col-type { width: 90px; }
-        .col-impact { width: 120px; }
-        .col-status { width: 100px; }
-        .col-date { width: 100px; }
-        .col-action { width: 50px; }
-        .col-title { width: auto; min-width: 200px; }
-        
-        /* Text truncation for descriptions */
-        .text-truncate-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-height: 2.75rem;
+        .data-table tbody tr {
+            transition: all 0.2s ease;
+        }
+        .data-table tbody tr:hover { 
+            background-color: #F8FAFC;
         }
         
-        /* Badges - Smaller rectangular style */
+        /* Risk Indicators */
+        .risk-critical {
+            border-right: 4px solid #EF4444;
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.03) 0%, transparent 100%);
+        }
+        [dir="ltr"] .risk-critical {
+            border-right: none;
+            border-left: 4px solid #EF4444;
+            background: linear-gradient(-90deg, rgba(239, 68, 68, 0.03) 0%, transparent 100%);
+        }
+        .risk-high {
+            border-right: 4px solid #F59E0B;
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.03) 0%, transparent 100%);
+        }
+        [dir="ltr"] .risk-high {
+            border-right: none;
+            border-left: 4px solid #F59E0B;
+            background: linear-gradient(-90deg, rgba(245, 158, 11, 0.03) 0%, transparent 100%);
+        }
+        
+        /* Status Dot Indicators */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-inline-end: 6px;
+        }
+        .status-dot.active {
+            background: #22C55E;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+            animation: pulse-green 2s infinite;
+        }
+        .status-dot.pending {
+            background: #F59E0B;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+        }
+        .status-dot.danger {
+            background: #EF4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+            animation: pulse-red 2s infinite;
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); }
+            50% { box-shadow: 0 0 16px rgba(34, 197, 94, 0.8); }
+        }
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
+            50% { box-shadow: 0 0 16px rgba(239, 68, 68, 0.8); }
+        }
+        
+        /* Premium Badges */
         .badge { 
             display: inline-flex; 
             align-items: center;
-            justify-content: center;
-            padding: 0.1875rem 0.5rem; 
-            font-size: 0.625rem; 
+            padding: 0.25rem 0.75rem; 
+            font-size: 0.6875rem; 
             font-weight: 600; 
-            border-radius: 0.25rem;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-            line-height: 1.25;
-            min-width: 3.5rem;
+            border-radius: 6px;
+            letter-spacing: 0.02em;
         }
-        .badge-success { background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
-        .badge-warning { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
-        .badge-danger { background-color: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-        .badge-info { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-        .badge-neutral { background-color: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
-        
-        /* Monospace Numbers */
-        .mono { 
-            font-family: 'IBM Plex Mono', 'SF Mono', monospace; 
-            font-variant-numeric: tabular-nums; 
+        .badge-success { 
+            background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); 
+            color: #047857; 
+        }
+        .badge-warning { 
+            background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); 
+            color: #B45309; 
+        }
+        .badge-danger { 
+            background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%); 
+            color: #B91C1C; 
+        }
+        .badge-info { 
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); 
+            color: #1D4ED8; 
+        }
+        .badge-neutral { 
+            background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); 
+            color: #475569; 
         }
         
         /* Sidebar Navigation */
@@ -94,62 +178,174 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.625rem 1rem;
+            padding: 0.75rem 1rem;
             font-size: 0.875rem;
-            color: #64748b;
-            border-radius: 0.5rem;
-            transition: all 0.15s ease;
+            color: #94A3B8;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            margin: 2px 0;
         }
         .sidebar-link:hover { 
-            background-color: #f1f5f9; 
-            color: #334155;
+            background: rgba(255, 255, 255, 0.05);
+            color: #E2E8F0;
         }
         .sidebar-link.active { 
-            background-color: #0f172a; 
-            color: #ffffff;
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
         .sidebar-link svg {
             width: 1.25rem;
             height: 1.25rem;
             flex-shrink: 0;
+            opacity: 0.8;
+        }
+        .sidebar-link.active svg {
+            opacity: 1;
         }
         
-        /* Card Styles */
+        /* Section Labels */
+        .sidebar-section {
+            font-size: 0.625rem;
+            font-weight: 700;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.75rem 1rem 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        /* Premium KPI Cards */
+        .kpi-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid #E2E8F0;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+        }
+        
+        /* Trend Indicators */
+        .trend-up {
+            color: #10B981;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .trend-down {
+            color: #EF4444;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        /* Progress Bar */
+        .progress-bar {
+            height: 6px;
+            background: #1E293B;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3B82F6 0%, #8B5CF6 100%);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        /* Monospace Numbers */
+        .mono { 
+            font-family: 'IBM Plex Mono', monospace; 
+            font-variant-numeric: tabular-nums; 
+        }
+        
+        /* Card Base */
         .card {
             background: white;
-            border-radius: 0.75rem;
-            border: 1px solid rgba(226, 232, 240, 0.6);
+            border-radius: 12px;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
         .card-header {
             padding: 1rem 1.25rem;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid #F1F5F9;
         }
         .card-body {
             padding: 1.25rem;
         }
+        
+        /* Premium Button */
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            color: white;
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
+        }
+        
+        .btn-secondary {
+            background: #F1F5F9;
+            color: #475569;
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:hover {
+            background: #E2E8F0;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="h-full bg-[#f8fafc]">
+<body class="h-full bg-main-bg">
     {% if user.is_authenticated %}
     <div class="flex h-full">
-        <!-- Sidebar -->
-        <aside class="w-[260px] bg-white border-{% if is_english %}r{% else %}l{% endif %} border-slate-200 flex flex-col fixed h-full z-40 {% if is_english %}left-0{% else %}right-0{% endif %}">
+        <!-- Premium Glassmorphism Sidebar -->
+        <aside class="glass-sidebar w-[280px] flex flex-col fixed h-full z-40 {% if is_english %}left-0{% else %}right-0{% endif %}">
             <!-- Logo -->
-            <div class="p-5 border-b border-slate-100">
+            <div class="p-5 border-b border-white/5">
                 <a href="{% url 'dashboard' %}" class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center">
-                        <span class="text-white font-bold text-sm">F</span>
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <span class="text-white font-bold text-lg">F</span>
                     </div>
                     <div>
-                        <div class="font-bold text-slate-800">FinAI</div>
-                        <div class="text-[10px] text-slate-400 uppercase tracking-wider">{{ t.financial_audit|default:'التدقيق المالي' }}</div>
+                        <div class="font-bold text-white text-lg">FinAI</div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wider">{{ t.financial_audit|default:'التدقيق المالي الذكي' }}</div>
                     </div>
                 </a>
             </div>
             
             <!-- Navigation -->
-            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+            <nav class="flex-1 p-4 overflow-y-auto">
+                <!-- Core Audit Section -->
+                <div class="sidebar-section">{{ t.core_audit|default:'التدقيق الأساسي' }}</div>
+                
                 <a href="{% url 'dashboard' %}" 
                    class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
                    data-testid="nav-dashboard">
@@ -166,15 +362,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                     </svg>
                     <span>{{ t.nav_compliance|default:'الامتثال' }}</span>
-                </a>
-                
-                <a href="{% url 'document_upload' %}" 
-                   class="sidebar-link {% if 'documents' in request.path or 'upload' in request.path %}active{% endif %}"
-                   data-testid="nav-documents">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                    </svg>
-                    <span>{{ t.nav_documents|default:'المستندات' }}</span>
                 </a>
                 
                 <a href="{% url 'audit_findings_list' %}" 
@@ -195,6 +382,18 @@
                     <span>ZATCA</span>
                 </a>
                 
+                <!-- Documents Section -->
+                <div class="sidebar-section">{{ t.documents_section|default:'المستندات' }}</div>
+                
+                <a href="{% url 'document_upload' %}" 
+                   class="sidebar-link {% if 'documents' in request.path or 'upload' in request.path %}active{% endif %}"
+                   data-testid="nav-documents">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    <span>{{ t.nav_documents|default:'رفع المستندات' }}</span>
+                </a>
+                
                 <a href="{% url 'ocr_evidence_list' %}" 
                    class="sidebar-link {% if 'ocr' in request.path %}active{% endif %}"
                    data-testid="nav-ocr">
@@ -204,9 +403,8 @@
                     <span>{{ t.nav_ocr|default:'أدلة OCR' }}</span>
                 </a>
                 
-                <div class="pt-4 mt-4 border-t border-slate-100">
-                    <p class="px-3 mb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{{ t.reports|default:'التقارير' }}</p>
-                </div>
+                <!-- Analytics Section -->
+                <div class="sidebar-section">{{ t.analytics_section|default:'التحليلات' }}</div>
                 
                 <a href="{% url 'arabic_report' %}" 
                    class="sidebar-link {% if 'report' in request.path and 'reports' not in request.path %}active{% endif %}"
@@ -225,10 +423,10 @@
                     </svg>
                     <span>{{ t.nav_analytics|default:'التحليلات' }}</span>
                 </a>
-            </nav>
-            
-            <!-- Bottom: Settings -->
-            <div class="p-4 border-t border-slate-100">
+                
+                <!-- System Section -->
+                <div class="sidebar-section">{{ t.system_section|default:'النظام' }}</div>
+                
                 <a href="{% url 'organization_settings' %}" 
                    class="sidebar-link {% if 'settings' in request.path %}active{% endif %}"
                    data-testid="nav-settings">
@@ -238,49 +436,80 @@
                     </svg>
                     <span>{{ t.nav_settings|default:'الإعدادات' }}</span>
                 </a>
+            </nav>
+            
+            <!-- AI Credits Progress Bar -->
+            <div class="p-4 border-t border-white/5">
+                <div class="bg-sidebar-hover rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-slate-400">{{ t.ai_credits|default:'رصيد AI' }}</span>
+                        <span class="text-xs font-bold text-white">750 / 1000</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: 75%"></div>
+                    </div>
+                    <div class="flex items-center gap-2 mt-3">
+                        <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                        <span class="text-[10px] text-slate-500">{{ t.ai_active|default:'AI نشط' }}</span>
+                    </div>
+                </div>
             </div>
         </aside>
         
         <!-- Main Content Area -->
-        <div class="flex-1 {% if is_english %}mr-[260px]{% else %}ml-[260px]{% endif %} min-h-screen flex flex-col">
-            <!-- Top Bar -->
-            <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-slate-200/60">
-                <div class="flex items-center justify-between h-14 px-6">
+        <div class="flex-1 {% if is_english %}mr-[280px]{% else %}ml-[280px]{% endif %} min-h-screen flex flex-col">
+            <!-- Premium Top Bar -->
+            <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200/60">
+                <div class="flex items-center justify-between h-16 px-8">
                     <!-- Organization & Period -->
                     <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                 </svg>
                             </div>
                             <div>
-                                <div class="text-sm font-medium text-slate-700">{{ user.organization.name|default:"—" }}</div>
-                                <div class="text-[10px] text-slate-400">{{ t.fiscal_year|default:'السنة المالية' }} 2026</div>
+                                <div class="text-sm font-semibold text-slate-800">{{ user.organization.name|default:"—" }}</div>
+                                <div class="text-[11px] text-slate-400 flex items-center gap-1">
+                                    <span class="status-dot active"></span>
+                                    {{ t.fiscal_year|default:'السنة المالية' }} 2026
+                                </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Right Side Actions -->
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-4">
                         <!-- Language Toggle -->
                         <form method="post" action="{% url 'toggle_language' %}" class="inline">
                             {% csrf_token %}
                             <button type="submit" 
                                     data-testid="language-toggle-btn"
-                                    class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+                                    class="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all">
                                 {% if is_arabic %}EN{% else %}عربي{% endif %}
                             </button>
                         </form>
                         
+                        <!-- Notifications -->
+                        <button class="relative w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </button>
+                        
                         <!-- User Menu -->
-                        <div class="flex items-center gap-3 {% if is_english %}border-r{% else %}border-l{% endif %} border-slate-200 {% if is_english %}pr-3{% else %}pl-3{% endif %}">
+                        <div class="flex items-center gap-3 {% if is_english %}border-r{% else %}border-l{% endif %} border-slate-200 {% if is_english %}pr-4{% else %}pl-4{% endif %}">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                {{ user.get_full_name|default:user.email|slice:":1"|upper }}
+                            </div>
                             <div class="text-{% if is_english %}left{% else %}right{% endif %}">
-                                <div class="text-sm font-medium text-slate-700">{{ user.get_full_name|default:user.email }}</div>
-                                <div class="text-[10px] text-slate-400">{{ user.role|default:'مدقق' }}</div>
+                                <div class="text-sm font-semibold text-slate-800">{{ user.get_full_name|default:user.email }}</div>
+                                <div class="text-[11px] text-slate-400">{{ user.role|default:'مدقق' }}</div>
                             </div>
                             <a href="{% url 'logout' %}" 
-                               class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
+                               class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all"
                                title="{{ t.nav_logout|default:'خروج' }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -294,15 +523,15 @@
             <!-- Page Content -->
             <main class="flex-1 p-8">
                 {% if messages %}
-                <div class="mb-6 space-y-2">
+                <div class="mb-6 space-y-3">
                     {% for message in messages %}
-                    <div class="px-4 py-3 rounded-lg text-sm flex items-center gap-2
-                        {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-100
-                        {% elif message.tags == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-100
-                        {% elif message.tags == 'warning' %}bg-amber-50 text-amber-700 border border-amber-100
-                        {% else %}bg-blue-50 text-blue-700 border border-blue-100{% endif %}">
+                    <div class="px-5 py-4 rounded-xl text-sm flex items-center gap-3 shadow-sm
+                        {% if message.tags == 'error' %}bg-gradient-to-r from-red-50 to-red-100/50 text-red-700 border border-red-200
+                        {% elif message.tags == 'success' %}bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 border border-emerald-200
+                        {% elif message.tags == 'warning' %}bg-gradient-to-r from-amber-50 to-amber-100/50 text-amber-700 border border-amber-200
+                        {% else %}bg-gradient-to-r from-blue-50 to-blue-100/50 text-blue-700 border border-blue-200{% endif %}">
                         {% if message.tags == 'success' %}
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         {% endif %}
@@ -316,9 +545,12 @@
             </main>
             
             <!-- Footer -->
-            <footer class="border-t border-slate-200/60 bg-white py-4 px-6">
+            <footer class="border-t border-slate-200/60 bg-white py-4 px-8">
                 <div class="flex items-center justify-between text-xs text-slate-400">
-                    <span>FinAI v1.0 - منصة التدقيق المالي الذكي</span>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                        <span>FinAI v2.0 - {{ t.ai_platform|default:'منصة التدقيق المالي بالذكاء الاصطناعي' }}</span>
+                    </div>
                     <span>© 2026 {{ t.all_rights|default:'جميع الحقوق محفوظة' }}</span>
                 </div>
             </footer>
@@ -326,7 +558,7 @@
     </div>
     {% else %}
     <!-- Non-authenticated content -->
-    <div class="min-h-screen flex items-center justify-center bg-slate-50">
+    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         {% block unauthenticated_content %}{% endblock %}
     </div>
     {% endif %}
