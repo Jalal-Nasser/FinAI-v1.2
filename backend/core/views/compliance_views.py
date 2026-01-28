@@ -23,58 +23,55 @@ def compliance_overview_view(request):
     user = request.user
     organization = user.organization
     
-    # ZATCA Summary
-    zatca_invoices = ZATCAInvoice.objects.filter(organization=organization)
-    zatca_summary = {
-        'total': zatca_invoices.count(),
-        'validated': zatca_invoices.filter(status='validated').count(),
-        'cleared': zatca_invoices.filter(status='cleared').count(),
-        'rejected': zatca_invoices.filter(status='rejected').count(),
-        'pending': zatca_invoices.filter(status='pending').count(),
-    }
+    # ZATCA Invoices
+    zatca_invoices = ZATCAInvoice.objects.filter(organization=organization).order_by('-issue_date')[:10]
+    zatca_invoices_count = ZATCAInvoice.objects.filter(organization=organization).count()
+    zatca_valid_count = ZATCAInvoice.objects.filter(
+        organization=organization, 
+        status__in=['validated', 'cleared']
+    ).count()
+    zatca_score = int((zatca_valid_count / max(zatca_invoices_count, 1)) * 100) if zatca_invoices_count > 0 else 100
     
-    # Calculate ZATCA score
-    zatca_valid = zatca_summary['validated'] + zatca_summary['cleared']
-    zatca_score = int((zatca_valid / max(zatca_summary['total'], 1)) * 100) if zatca_summary['total'] > 0 else 100
+    # VAT Reconciliations
+    vat_reconciliations = VATReconciliation.objects.filter(organization=organization).order_by('-period_end')[:10]
+    vat_reconciliations_count = VATReconciliation.objects.filter(organization=organization).count()
+    vat_score_sum = VATReconciliation.objects.filter(organization=organization).aggregate(avg=Sum('compliance_score'))['avg']
+    vat_score = int(vat_score_sum / max(vat_reconciliations_count, 1)) if vat_score_sum else 100
     
-    # VAT Summary
-    vat_reconciliations = VATReconciliation.objects.filter(organization=organization)
-    vat_summary = {
-        'total': vat_reconciliations.count(),
-        'total_variance': vat_reconciliations.aggregate(total=Sum('total_variance'))['total'] or Decimal('0'),
-        'total_collected': vat_reconciliations.aggregate(total=Sum('total_output_vat'))['total'] or Decimal('0'),
-        'total_reported': vat_reconciliations.aggregate(total=Sum('net_vat_due'))['total'] or Decimal('0'),
-    }
-    vat_score = vat_reconciliations.aggregate(avg=Sum('compliance_score'))['avg']
-    vat_score = int(vat_score / max(vat_reconciliations.count(), 1)) if vat_score else 100
-    
-    # Zakat Summary
+    # Zakat Calculation
     zakat_calcs = ZakatCalculation.objects.filter(organization=organization)
     latest_zakat = zakat_calcs.order_by('-fiscal_year_end').first()
-    zakat_summary = {
-        'total': zakat_calcs.count(),
-        'latest': latest_zakat,
-        'zakat_due': latest_zakat.zakat_due if latest_zakat else Decimal('0'),
-        'zakat_base': latest_zakat.net_zakat_base if latest_zakat else Decimal('0'),
-    }
-    zakat_score = zakat_calcs.aggregate(avg=Sum('compliance_score'))['avg']
-    zakat_score = int(zakat_score / max(zakat_calcs.count(), 1)) if zakat_score else 100
+    zakat_due = latest_zakat.zakat_due if latest_zakat else Decimal('0')
+    zakat_score_sum = zakat_calcs.aggregate(avg=Sum('compliance_score'))['avg']
+    zakat_score = int(zakat_score_sum / max(zakat_calcs.count(), 1)) if zakat_score_sum else 100
+    
+    # Audit Findings
+    total_findings = AuditFinding.objects.filter(organization=organization).count()
+    unresolved_findings = AuditFinding.objects.filter(
+        organization=organization
+    ).exclude(status__in=['resolved', 'closed']).count()
     
     # Overall score
     overall_score = int((zatca_score + vat_score + zakat_score) / 3)
     
-    # Recent regulatory references
-    regulatory_refs = RegulatoryReference.objects.all()[:10]
+    # Regulatory references
+    regulatory_references = RegulatoryReference.objects.all()[:10]
     
     context = {
-        'zatca_summary': zatca_summary,
-        'zatca_score': zatca_score,
-        'vat_summary': vat_summary,
-        'vat_score': vat_score,
-        'zakat_summary': zakat_summary,
-        'zakat_score': zakat_score,
+        'organization': organization,
         'overall_score': overall_score,
-        'regulatory_refs': regulatory_refs,
+        'zatca_score': zatca_score,
+        'zatca_invoices_count': zatca_invoices_count,
+        'zatca_invoices': zatca_invoices,
+        'vat_score': vat_score,
+        'vat_reconciliations_count': vat_reconciliations_count,
+        'vat_reconciliations': vat_reconciliations,
+        'zakat_score': zakat_score,
+        'zakat_due': zakat_due,
+        'latest_zakat': latest_zakat,
+        'total_findings': total_findings,
+        'unresolved_findings': unresolved_findings,
+        'regulatory_references': regulatory_references,
     }
     
     return render(request, 'compliance/overview.html', context)
