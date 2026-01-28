@@ -1,9 +1,15 @@
 const http = require('http');
 const httpProxy = require('http-proxy');
 
-const proxy = httpProxy.createProxyServer({});
+// Create proxy with increased limits
+const proxy = httpProxy.createProxyServer({
+    timeout: 60000,
+    proxyTimeout: 60000,
+});
 
 const server = http.createServer((req, res) => {
+    // Log incoming requests
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     proxy.web(req, res, { target: 'http://127.0.0.1:8001' });
 });
 
@@ -17,6 +23,10 @@ proxy.on('error', (err, req, res) => {
         res.writeHead(502, { 'Content-Type': 'text/plain' });
         res.end('Bad Gateway');
     }
+});
+
+proxy.on('proxyRes', (proxyRes, req, res) => {
+    console.log(`${new Date().toISOString()} - Response: ${proxyRes.statusCode} for ${req.url}`);
 });
 
 const PORT = process.env.PORT || 3000;
