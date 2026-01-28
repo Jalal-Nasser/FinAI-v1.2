@@ -30,3 +30,15 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+# Debug endpoint
+from django.http import JsonResponse
+def debug_auth(request):
+    return JsonResponse({
+        'authenticated': request.user.is_authenticated,
+        'user': str(request.user),
+        'session_key': request.session.session_key if hasattr(request, 'session') else None,
+        'cookies': list(request.COOKIES.keys()),
+    })
+
+urlpatterns.insert(0, path('debug-auth/', debug_auth))
