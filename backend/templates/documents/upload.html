@@ -3,17 +3,17 @@
 {% block title %}{{ t.document_upload|default:'رفع المستندات' }} - FinAI{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto">
+<div class="space-y-6">
     <!-- Page Header -->
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center justify-between">
         <div>
             <h1 class="text-xl font-bold text-slate-800">{{ t.document_upload|default:'رفع المستندات' }}</h1>
             <p class="text-sm text-slate-500">{{ t.upload_desc|default:'رفع مستند واحد أو مجموعة مستندات للتعرف الضوئي على النص' }}</p>
         </div>
         <div class="flex items-center gap-2 text-sm text-slate-500">
-            <span class="px-2 py-1 bg-slate-100 rounded">{{ total_docs|default:0 }} {{ t.total|default:'إجمالي' }}</span>
+            <span class="px-3 py-1.5 bg-slate-100 rounded-lg font-medium">{{ total_docs|default:0 }} {{ t.total|default:'إجمالي' }}</span>
             {% if pending_docs %}
-            <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded">{{ pending_docs }} {{ t.pending|default:'معلق' }}</span>
+            <span class="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg font-medium">{{ pending_docs }} {{ t.pending|default:'معلق' }}</span>
             {% endif %}
         </div>
     </div>
